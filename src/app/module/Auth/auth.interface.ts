@@ -1,5 +1,5 @@
-
 import { z } from "zod";
+import { Role } from "../../../generated/prisma";
 
 export const LoginSchema = z.object({
   email: z.string().email(),
@@ -15,3 +15,10 @@ export const ChangePasswordSchema = z.object({
 });
 
 export type TChangePassword = z.infer<typeof ChangePasswordSchema>;
+
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role
+};
