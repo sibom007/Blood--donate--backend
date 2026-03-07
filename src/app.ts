@@ -1,9 +1,10 @@
 import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-import router from './routes';
+
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import httpStatus from 'http-status';
 import cookieParser from 'cookie-parser';
+import router from './routes';
 const app = express();
 
 app.use(
@@ -15,14 +16,14 @@ app.use(
     credentials: true,
   })
 );
-//
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get("/", (req: Request, res: Response) => {
   res.send({
-    Message: "Assmient-9 Is Runing",
+    Message: "Blood-donate Is Runing",
   });
 });
 

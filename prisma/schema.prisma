@@ -1,60 +1,11 @@
-
-
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
+
 datasource db {
-  provider  = "postgresql"
-  url  	    = env("DATABASE_URL")
-  // uncomment next line if you use Prisma <5.10
-  // directUrl = env("DATABASE_URL_UNPOOLED")
-}
-
-
-model User {
-  id           String      @id @default(uuid())
-  name         String
-  email        String      @unique
-  password     String
-  role         Role    
-  photo        String?
-  status       UserStatus @default(ACTIVE)
-  bloodType    BloodGroup
-  donateBlood  BloodDonate @default(NO)
-  location     String
-  availability Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  profile      UserProfile?
-  donorOf     Request[] @relation("Donor")
-  requesterOf Request[] @relation("Requester")
-}
-
-model Request {
-  id              String      @id @default(uuid())
-  donor          User       @relation("Donor", fields: [donorId], references: [id])
-  donorId        String
-  requester      User       @relation("Requester", fields: [requesterId], references: [id])
-  requesterId    String
-  phoneNumber     String
-  dateOfDonation  String
-  hospitalName    String
-  hospitalAddress String
-  reason          String
-  requestStatus   RequestStatus      @default(PENDING)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-}
-
-model UserProfile {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  bio               String
-  age               Int
-  lastDonationDate  String
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User     @relation(fields: [userId], references: [id])
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 enum BloodGroup {
@@ -70,21 +21,103 @@ enum BloodGroup {
 
 enum RequestStatus {
   PENDING
-   APPROVED
-    REJECTED
-}
-
-enum BloodDonate {
-  YES
-  NO
+  ACCEPTED
+  COMPLETED
+  CANCELLED
 }
 
 enum Role {
-  USER
   ADMIN
+  VOLUNTEER
+  USER
 }
 
-enum UserStatus { 
+enum UserStatus {
   ACTIVE
-  BlOCKED
+  BLOCKED
+}
+
+enum UrgencyLevel {
+  NORMAL
+  URGENT
+  CRITICAL
+}
+
+model User {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String   @unique
+  password         String
+
+  role             Role     @default(USER)
+
+  bloodType        BloodGroup
+
+  age              Int
+  phoneNumber      String
+  city             String
+
+  bio              String?
+  photo            String?
+
+  lastDonationDate DateTime?
+
+  isAvailable      Boolean  @default(true)
+
+  latitude         Float?
+  longitude        Float?
+
+  status           UserStatus @default(ACTIVE)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  donatedRequests  Request[] @relation("DonorRequests")
+  createdRequests  Request[] @relation("RequesterRequests")
+}
+
+model Request {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  bloodType        BloodGroup
+
+  phoneNumber      String
+  dateOfDonation   DateTime
+
+  hospitalName     String
+  hospitalAddress  String
+
+  description      String?
+
+  urgency          UrgencyLevel @default(NORMAL)
+
+  requestStatus    RequestStatus @default(PENDING)
+
+  donorId          String? @db.ObjectId
+  requesterId      String  @db.ObjectId
+
+  donor            User?  @relation("DonorRequests", fields: [donorId], references: [id])
+  requester        User   @relation("RequesterRequests", fields: [requesterId], references: [id])
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model DonationEvent {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  location    String
+  date        DateTime
+  description String?
+
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  message   String
+  isRead    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
 }

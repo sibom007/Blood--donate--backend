@@ -4,7 +4,7 @@ import path from 'path';
 dotenv.config({ path: path.join((process.cwd(), '.env')) });
 
 export default {
-  bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
+  bcrypt_salt_rounds: 10,
   accesToken_secret: process.env.ACCESTOKEN_SECRET,
   accesToken_secret_exparein: process.env.ACCESTOKEN_SECRET_EXPAREIN,
   refreshToken_secret: process.env.REFRESHTOKEN_SECRET,
