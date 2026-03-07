@@ -1,7 +1,8 @@
-import { Request } from 'express';
+import { Request } from "express";
+import { AuthUser } from "../app/module/auth/auth.interface";
 
-declare module 'express-serve-static-core' {
-    interface Request {
-        user?: any; // Adjust the type of `user` as needed
-    }
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: AuthUser; // Adjust the type of `user` as needed
+  }
 }
