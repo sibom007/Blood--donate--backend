@@ -10,7 +10,7 @@ import bcrypt from "bcrypt";
 import AppError from "../../Error/AppError";
 import { db } from "../../../utils/prisma";
 import config from "../../../config";
-import { AuthUser } from "../auth/auth.interface";
+import { AuthUser } from "../Auth/auth.interface";
 import { Prisma } from "../../../generated/prisma";
 import httpStatus from "http-status";
 

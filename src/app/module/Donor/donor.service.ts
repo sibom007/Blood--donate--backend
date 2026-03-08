@@ -1,5 +1,5 @@
 import { db } from "../../../utils/prisma";
-import { AuthUser } from "../auth/auth.interface";
+import { AuthUser } from "../Auth/auth.interface";
 import { CreateRequestInput, GetRequestsQueryInput, UpdateStatusInput } from "./donor.interface";
 import { getActiveUser } from "../../../helper/getActiveUser";
 import AppError from "../../Error/AppError";
