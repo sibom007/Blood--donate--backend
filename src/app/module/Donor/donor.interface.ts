@@ -56,12 +56,62 @@ export const CreateRequestSchema = z.object({
 
 export type CreateRequestInput = z.infer<typeof CreateRequestSchema>;
 
-
 export const UpdateStatusSchema = z.object({
   urgency: z.enum(["NORMAL", "URGENT", "CRITICAL"]).optional(),
   requestStatus: z
-  .enum(["PENDING", "ACCEPTED", "COMPLETED", "CANCELLED"])
-  .optional(),
+    .enum(["PENDING", "ACCEPTED", "COMPLETED", "CANCELLED"])
+    .optional(),
 });
 
 export type UpdateStatusInput = z.infer<typeof UpdateStatusSchema>;
+
+export const getRequestsQuerySchema = z.object({
+  bloodType: z
+    .enum([
+      "A_POSITIVE",
+      "A_NEGATIVE",
+      "B_POSITIVE",
+      "B_NEGATIVE",
+      "AB_POSITIVE",
+      "AB_NEGATIVE",
+      "O_POSITIVE",
+      "O_NEGATIVE",
+    ])
+    .optional(),
+
+  urgency: z.enum(["NORMAL", "URGENT", "CRITICAL"]).optional(),
+
+  requestStatus: z
+    .enum(["PENDING", "ACCEPTED", "COMPLETED", "CANCELLED"])
+    .optional(),
+
+  hospitalName: z.string().optional(),
+
+  startDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
+
+  endDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
+
+  sortBy: z.enum(["createdAt", "dateOfDonation", "urgency"]).optional(),
+
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+
+  limit: z
+    .string()
+    .transform((val) => Number(val))
+    .optional(),
+
+  page: z
+    .string()
+    .transform((val) => Number(val))
+    .optional(),
+});
+
+export type GetRequestsQueryInput = z.infer<typeof getRequestsQuerySchema>;
