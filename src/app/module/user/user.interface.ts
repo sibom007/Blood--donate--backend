@@ -89,3 +89,106 @@ export const CreateUserSchema = z.object({
 });
 
 export type CreateUserInput = z.infer<typeof CreateUserSchema>;
+
+export const getUsersQuerySchema = z.object({
+  bloodType: z
+    .enum([
+      "A_POSITIVE",
+      "B_POSITIVE",
+      "A_NEGATIVE",
+      "B_NEGATIVE",
+      "AB_POSITIVE",
+      "AB_NEGATIVE",
+      "O_POSITIVE",
+      "O_NEGATIVE",
+    ])
+    .optional(),
+  city: z.string().optional(),
+  isAvailable: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
+
+  status: z.enum(["ACTIVE", "BLOCKED"]).optional(),
+
+  minAge: z
+    .string()
+    .transform((val) => Number(val))
+    .optional(),
+
+  maxAge: z
+    .string()
+    .transform((val) => Number(val))
+    .optional(),
+
+  sortBy: z.enum(["age", "createdAt", "lastDonationDate", "city"]).optional(),
+
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+
+  limit: z
+    .string()
+    .transform((val) => Number(val))
+    .optional(),
+
+  page: z
+    .string()
+    .transform((val) => Number(val))
+    .optional(),
+});
+
+export type getUsersQueryInput = z.infer<typeof getUsersQuerySchema>;
+
+export const UserStatusSchema = z
+  .object({
+    isAvailable: z.boolean(),
+    status: z.enum(["ACTIVE", "BLOCKED"]),
+  })
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  });
+
+export type UserStatusInput = z.infer<typeof UserStatusSchema>;
+
+export const updateUserProfileSchema = z
+  .object({
+    name: z.string().min(2).max(100),
+
+    bloodType: z.enum([
+      "A_POSITIVE",
+      "A_NEGATIVE",
+      "B_POSITIVE",
+      "B_NEGATIVE",
+      "AB_POSITIVE",
+      "AB_NEGATIVE",
+      "O_POSITIVE",
+      "O_NEGATIVE",
+    ]),
+
+    age: z.number().int().min(18).max(65),
+
+    phoneNumber: z.string().min(10).max(20),
+
+    city: z.string().min(2).max(100),
+
+    bio: z.string().max(500),
+
+    photo: z.string().url(),
+
+    lastDonationDate: z
+      .string()
+      .datetime()
+      .transform((val) => new Date(val)),
+
+    isAvailable: z.boolean(),
+
+    latitude: z.number(),
+
+    longitude: z.number(),
+  })
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  });
+
+export type updateUserProfileInput = z.infer<typeof updateUserProfileSchema>;

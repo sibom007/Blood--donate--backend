@@ -1,8 +1,14 @@
 import express from 'express';
 
 import validateRequest from '../../middlewares/validateRequest';
-import { CreateUserSchema } from "./user.interface";
-import { UserControllers } from './user.contorler';
+import {
+  CreateUserSchema,
+  updateUserProfileSchema,
+  UserStatusSchema,
+} from "./user.interface";
+import { UserControllers } from "./user.contorler";
+import auth from "../../middlewares/auth";
+import { Role } from "../../../generated/prisma";
 
 const router = express.Router();
 
@@ -12,39 +18,27 @@ router.post(
   UserControllers.createUser,
 );
 
+router.get(
+  "/my-profile",
+  auth(Role.USER, Role.VOLUNTEER, Role.ADMIN),
+  UserControllers.getMyProfile,
+);
 
-// router.get("/donor-list", UserControllers.getdonorUser);
-// router.put(
-//   "/my-profile",
-//   auth(Role.USER, Role.ADMIN),
-//   UserControllers.updateUserProfile
-// );
-// router.get(
-//   "/my-profile",
-//   auth(Role.USER, Role.ADMIN),
-//   UserControllers.getUserProfile
-// );
-// router.get(
-//   "/my-profile/:id",
-//   auth(Role.USER, Role.ADMIN),
-//   UserControllers.getUserBYId
-// );
-// router.get(
-//   "/donner-details/:id",
-//   // auth(Role.USER, Role.ADMIN),
-//   UserControllers.getSingleDonner
-// );
-// router.get("/All_user", auth(Role.ADMIN), UserControllers.GetAllUser);
-// router.put(
-//   "/updateUser-status/:id",
-//   auth(Role.ADMIN),
-//   UserControllers.UpdateUserStatus
-// );
-// router.put(
-//   "/updateUser-role/:id",
-//   auth(Role.ADMIN),
-//   UserControllers.UpdateUserRoleStatus
-// );
+router.get("/all-profile", auth(Role.ADMIN), UserControllers.getAllProfile);
+
+router.patch(
+  "/update-user/:userId",
+  auth(Role.ADMIN),
+  validateRequest(UserStatusSchema),
+  UserControllers.UpdateUserStatus,
+);
+router.patch(
+  "/update-myDetails",
+  auth(Role.USER, Role.VOLUNTEER, Role.ADMIN),
+  validateRequest(updateUserProfileSchema),
+  UserControllers.UpdateUserDetails,
+);
+
 
 
 export const UserRoutes = router;

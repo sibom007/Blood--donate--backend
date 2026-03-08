@@ -16,10 +16,11 @@
 
 import { db } from "../../../utils/prisma";
 import { AuthUser } from "../auth/auth.interface";
-import { CreateRequestInput, UpdateStatusInput } from "./donor.interface";
+import { CreateRequestInput, GetRequestsQueryInput, UpdateStatusInput } from "./donor.interface";
 import { getActiveUser } from "../../../helper/getActiveUser";
 import AppError from "../../Error/AppError";
 import httpStatus from "http-status";
+import { Prisma } from "../../../generated/prisma";
 
 const RequestForBloodIntoDB = async (
   AuthUser: AuthUser | undefined,
@@ -45,14 +46,96 @@ const RequestViewInToDB = async (RequestUser: AuthUser | undefined) => {
   return result;
 };
 
-const AllRequestViewInToDB = async (RequestUser: AuthUser | undefined) => {
-   await getActiveUser(RequestUser?.email)
 
-  return await db.request.findMany({
-     orderBy:{
-          urgency:"desc"
-     }
+const AllRequestViewInToDB = async (
+  RequestUser: AuthUser | undefined,
+  query: GetRequestsQueryInput,
+) => {
+  await getActiveUser(RequestUser?.email);
+
+  const {
+    bloodType,
+    urgency,
+    requestStatus,
+    hospitalName,
+    startDate,
+    endDate,
+    sortBy = "urgency",
+    sortOrder = "desc",
+    limit = 10,
+    page = 1,
+  } = query;
+
+  const skip = (page - 1) * limit;
+
+  const filters: Prisma.RequestWhereInput = {};
+
+  if (bloodType) {
+    filters.bloodType = bloodType;
+  }
+
+  if (urgency) {
+    filters.urgency = urgency;
+  }
+
+  if (requestStatus) {
+    filters.requestStatus = requestStatus;
+  }
+
+  if (hospitalName) {
+    filters.hospitalName = {
+      contains: hospitalName,
+      mode: "insensitive",
+    };
+  }
+
+  if (startDate || endDate) {
+    filters.dateOfDonation = {};
+    if (startDate) filters.dateOfDonation.gte = startDate;
+    if (endDate) filters.dateOfDonation.lte = endDate;
+  }
+
+  const result = await db.request.findMany({
+    where: filters,
+
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+
+    skip,
+    take: limit,
+
+    include: {
+      donor: {
+        select: {
+          id: true,
+          name: true,
+          phoneNumber: true,
+          bloodType: true,
+        },
+      },
+      requester: {
+        select: {
+          id: true,
+          name: true,
+          phoneNumber: true,
+        },
+      },
+    },
   });
+
+  const total = await db.request.count({
+    where: filters,
+  });
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  };
 };
 
 const RequestDetailsInToDB = async (

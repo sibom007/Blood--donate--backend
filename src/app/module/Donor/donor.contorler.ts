@@ -23,7 +23,7 @@ const RequestView = catchAsync(async (req, res) => {
 });
 
 const AllRequestView = catchAsync(async (req, res) => {
-  const result = await DonorRequestservice.AllRequestViewInToDB(req.user);
+  const result = await DonorRequestservice.AllRequestViewInToDB(req.user,req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -71,32 +71,6 @@ const DeleteRequest = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-// const GivienRequestofDonor = catchAsync(async (req, res) => {
-//   const user = req.user;
-//   const result = await DonorRequestservice.GivenRequestofDonorIntoDB(user);
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "Donation requests retrieved successfully",
-//     data: result,
-//   });
-// });
-
-// const UpdateRequestofDonor = catchAsync(async (req, res) => {
-//   const UpdatData = req.body;
-//   const id = req.params.requestId;
-//   const result = await DonorRequestservice.UpdateDonorRequestIntoDB(
-//     id,
-//     UpdatData
-//   );
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "Donation request status successfully updated",
-//     data: result,
-//   });
-// });
 
 export const Donorcontorler = {
   createRequest,
