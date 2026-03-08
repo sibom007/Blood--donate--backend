@@ -1,19 +1,3 @@
-// TODO:NEED to add
-// age:true,
-// bio:true,
-// name:true,
-// lastDonationDate:true,
-// phoneNumber:true,
-// bloodType:true,
-// city:true,
-// email:true,
-// latitude:true,
-// longitude:true,
-// photo:true,
-// role:true,
-// createdAt:true,
-// updatedAt:true,
-
 import { db } from "../../../utils/prisma";
 import { AuthUser } from "../auth/auth.interface";
 import { CreateRequestInput, GetRequestsQueryInput, UpdateStatusInput } from "./donor.interface";

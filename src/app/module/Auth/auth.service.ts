@@ -5,9 +5,10 @@ import bcrypt from "bcrypt";
 import { jwtHelpers } from "../../../helper/jwtHelpers";
 import config from "../../../config";
 import { Secret } from "jsonwebtoken";
-import { UserStatus } from "@prisma/client";
+
 import { ChangePasswordSchema, LoginSchema, TChangePassword, TLogin } from "./auth.interface";
 import { db } from "../../../utils/prisma";
+import { UserStatus } from "../../../generated/prisma";
 
 const LoginIntoDB = async (payload: TLogin) => {
   const { email, password } = LoginSchema.parse(payload);
