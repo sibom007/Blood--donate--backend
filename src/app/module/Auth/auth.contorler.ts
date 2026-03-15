@@ -2,16 +2,17 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../utils/catchAsync';
 import sendResponse from '../../../utils/sendResponse';
 import { Authservice } from './auth.service';
-
+import AppError from "../../Error/AppError";
+import { clearAuthCookies } from "../../../helper/clearAuthCookies";
 
 const LoginUser = catchAsync(async (req, res) => {
   const result = await Authservice.LoginIntoDB(req.body);
 
- res.cookie("refreshToken", refreshToken, {
-   httpOnly: true,
-   secure: process.env.NODE_ENV === "production",
-   sameSite: "none",
- });
+  res.cookie("refreshToken", result.refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
 
   sendResponse(res, {
     statusCode: 200,
@@ -32,6 +33,16 @@ const refreshToken = catchAsync(async (req, res) => {
     data: result,
   });
 });
+const logout = catchAsync(async (req, res) => {
+  const result = clearAuthCookies(res);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "logout successfully!",
+    data: result,
+  });
+});
 
 const changepassword = catchAsync(async (req, res) => {
   const result = await Authservice.ChangePassword(req.body);
@@ -43,9 +54,9 @@ const changepassword = catchAsync(async (req, res) => {
   });
 });
 
-
 export const AuthControllers = {
-    LoginUser,
-    refreshToken,
-    changepassword
+  LoginUser,
+  refreshToken,
+  changepassword,
+  logout,
 };

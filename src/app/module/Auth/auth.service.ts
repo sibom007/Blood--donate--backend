@@ -36,6 +36,7 @@ const LoginIntoDB = async (payload: TLogin) => {
       name: userData.name,
       email: userData.email,
       role: userData.role,
+      tokenVersion: userData.tokenVersion,
     },
     config.accesToken_secret as Secret,
     config.accesToken_secret_exparein!,
@@ -47,6 +48,7 @@ const LoginIntoDB = async (payload: TLogin) => {
       name: userData.name,
       email: userData.email,
       role: userData.role,
+      tokenVersion: userData.tokenVersion,
     },
     config.refreshToken_secret as Secret,
     config.refreshToken_secret_exparein!,
@@ -57,6 +59,7 @@ const LoginIntoDB = async (payload: TLogin) => {
     name: userData.name,
     role: userData.role,
     bio: userData.bio,
+    tokenVersion: userData.tokenVersion,
     isAvailable: userData.isAvailable,
     createdAt: userData.createdAt,
     updatedAt: userData.updatedAt,
@@ -66,31 +69,42 @@ const LoginIntoDB = async (payload: TLogin) => {
 };
 
 const refreshToken = async (token: string) => {
+  if (!token) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "No refresh token");
+  }
+
   let decodedData;
+
   try {
     decodedData = jwtHelpers.verifyToken(
       token,
       config.refreshToken_secret as Secret,
     );
-  } catch (err) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized!");
+  } catch {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid refresh token");
   }
 
   const userData = await db.user.findUnique({
     where: {
       email: decodedData.email,
-      status: UserStatus.ACTIVE,
     },
   });
 
   if (!userData) {
-    throw new AppError(httpStatus.NOT_FOUND, "user not exist!");
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
+  if (userData.status !== UserStatus.ACTIVE) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User is inactive");
+  }
+
+  // generate new access token
   const accessToken = jwtHelpers.generateToken(
     {
-      email: userData.email,
+      id: userData.id,
       role: userData.role,
+      email: userData.email,
+      tokenVersion: userData.tokenVersion,
     },
     config.accesToken_secret as Secret,
     config.accesToken_secret_exparein!,
@@ -98,6 +112,13 @@ const refreshToken = async (token: string) => {
 
   return {
     accessToken,
+    user: {
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role,
+      isAvailable: userData.isAvailable,
+    },
   };
 };
 

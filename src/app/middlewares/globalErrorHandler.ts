@@ -20,41 +20,41 @@ const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     ];
 
     if (err instanceof ZodError) {
-        const simplifiedError = handleZodError(err);
-        statusCode = simplifiedError?.statusCode;
-        message = simplifiedError?.message;
-        errorSources = simplifiedError?.errorSources;
+      const simplifiedError = handleZodError(err);
+      statusCode = simplifiedError?.err?.statusCode || 400;
+      message = simplifiedError?.message;
+      errorSources = simplifiedError?.errorSources;
     } else if (err?.code === 11000) {
-        const simplifiedError = handleDuplicateError(err);
-        statusCode = simplifiedError?.statusCode;
-        message = simplifiedError?.message;
-        errorSources = simplifiedError?.errorSources;
+      const simplifiedError = handleDuplicateError(err);
+      statusCode = simplifiedError?.err?.statusCode || 400;
+      message = simplifiedError?.message;
+      errorSources = simplifiedError?.errorSources;
     } else if (err instanceof AppError) {
-        statusCode = err?.statusCode;
-        message = err.message;
-        errorSources = [
-            {
-                path: '',
-                message: err?.message,
-            },
-        ];
+      statusCode = err?.statusCode;
+      message = err.message;
+      errorSources = [
+        {
+          path: "",
+          message: err?.message,
+        },
+      ];
     } else if (err instanceof Error) {
-        message = err.message;
-        errorSources = [
-            {
-                path: '',
-                message: err?.message,
-            },
-        ];
+      message = err.message;
+      errorSources = [
+        {
+          path: "",
+          message: err?.message,
+        },
+      ];
     }
 
     //ultimate return
     return res.status(statusCode).json({
-        success: false,
-        message,
-        errorSources,
-        err,
-        stack: err?.stack,
+      success: false,
+      message,
+      errorSources,
+      err,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });
 };
 

@@ -50,6 +50,7 @@ model User {
   password         String
 
   role             Role     @default(USER)
+  tokenVersion     Int      @default(0)
 
   bloodType        BloodGroup
 

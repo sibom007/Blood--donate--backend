@@ -178,6 +178,7 @@ const UpdateUserStatusIntoDB = async (
     data: {
       status: payload.status,
       isAvailable: payload.isAvailable,
+      tokenVersion: 1,
     },
     select: {
       id: true,
@@ -293,12 +294,5 @@ export const userservise = {
   getAllProfileIntoDB,
   UpdateUserStatusIntoDB,
   UpdateUserDetailsIntoDB,
-  // getdonorUserIntoDB,
-  // getUserProfileIntoDB,
-  // UpdateUserProfileIntoDB,
-  // getSingleDonnerIntoDB,
-  // GetAllUserIntoDB,
-  // UpdateUserStatusIntoDB,
-  // UpdateUserRoleIntoDB,
-  // getUserIdIntoDB,
+
 };

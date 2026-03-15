@@ -11,10 +11,13 @@ router.post("/login", AuthControllers.LoginUser);
 
 router.post("/refresh-token", AuthControllers.refreshToken);
 
+  
+router.post("/logout", AuthControllers.logout);
+
 router.post(
   "/change-password",
-  auth(Role.USER, Role.ADMIN),
-  AuthControllers.changepassword
+  auth(Role.USER, Role.VOLUNTEER, Role.ADMIN),
+  AuthControllers.changepassword,
 );
 
 export const AuthRoutes = router;
