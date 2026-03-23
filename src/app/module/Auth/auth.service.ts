@@ -81,7 +81,7 @@ const refreshToken = async (token: string) => {
       config.refreshToken_secret as Secret,
     );
   } catch {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid refresh token");
+    throw new AppError(httpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN");
   }
 
   const userData = await db.user.findUnique({

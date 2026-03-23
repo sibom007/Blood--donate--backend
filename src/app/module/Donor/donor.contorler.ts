@@ -1,9 +1,16 @@
 import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
+import {
+  GetRequestsQueryInput,
+  GetRequestsQuerySchema,
+} from "./donor.interface";
 import { DonorRequestservice } from "./donor.service";
 
 const createRequest = catchAsync(async (req, res) => {
-  const result = await DonorRequestservice.RequestForBloodIntoDB(req.user, req.body);
+  const result = await DonorRequestservice.RequestForBloodIntoDB(
+    req.user,
+    req.body,
+  );
   sendResponse(res, {
     statusCode: 201,
     success: true,
@@ -13,7 +20,11 @@ const createRequest = catchAsync(async (req, res) => {
 });
 
 const RequestView = catchAsync(async (req, res) => {
-  const result = await DonorRequestservice.RequestViewInToDB(req.user);
+  const parsedQuery = GetRequestsQuerySchema.parse(req.query);
+  const result = await DonorRequestservice.RequestViewInToDB(
+    req.user,
+    parsedQuery,
+  );
   sendResponse(res, {
     statusCode: 200,
     success: true,

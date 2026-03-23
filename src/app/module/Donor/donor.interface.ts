@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+export const BloodGroupEnum = z.enum([
+  "A_POSITIVE",
+  "A_NEGATIVE",
+  "B_POSITIVE",
+  "B_NEGATIVE",
+  "AB_POSITIVE",
+  "AB_NEGATIVE",
+  "O_POSITIVE",
+  "O_NEGATIVE",
+]);
+
+export const UrgencyLevelEnum = z.enum(["NORMAL", "URGENT", "CRITICAL"]);
+
+export const RequestStatusEnum = z.enum(["PENDING", "ACCEPTED", "COMPLETED"]);
+
+
+
+
 export const CreateRequestSchema = z.object({
   bloodType: z.enum(
     [
@@ -48,13 +66,9 @@ export const CreateRequestSchema = z.object({
     .string()
     .regex(/^[0-9a-fA-F]{24}$/, "Invalid donor ID")
     .optional(),
-
-  requesterId: z
-    .string({ required_error: "Requester ID is required" })
-    .regex(/^[0-9a-fA-F]{24}$/, "Invalid requester ID"),
 });
-
 export type CreateRequestInput = z.infer<typeof CreateRequestSchema>;
+
 
 export const UpdateStatusSchema = z.object({
   urgency: z.enum(["NORMAL", "URGENT", "CRITICAL"]).optional(),
@@ -65,53 +79,33 @@ export const UpdateStatusSchema = z.object({
 
 export type UpdateStatusInput = z.infer<typeof UpdateStatusSchema>;
 
-export const getRequestsQuerySchema = z.object({
-  bloodType: z
-    .enum([
-      "A_POSITIVE",
-      "A_NEGATIVE",
-      "B_POSITIVE",
-      "B_NEGATIVE",
-      "AB_POSITIVE",
-      "AB_NEGATIVE",
-      "O_POSITIVE",
-      "O_NEGATIVE",
-    ])
-    .optional(),
+export const GetRequestsQuerySchema = z.object({
+  bloodType: BloodGroupEnum.optional(),
 
-  urgency: z.enum(["NORMAL", "URGENT", "CRITICAL"]).optional(),
+  urgency: UrgencyLevelEnum.optional(), // single value
+  requestStatus: RequestStatusEnum.optional(), // single value
 
-  requestStatus: z
-    .enum(["PENDING", "ACCEPTED", "COMPLETED", "CANCELLED"])
-    .optional(),
+  hospitalName: z.string().trim().optional(),
 
-  hospitalName: z.string().optional(),
+  search: z.string().trim().optional(),
 
-  startDate: z
-    .string()
-    .datetime()
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+
+  sortBy: z
+    .enum(["urgency", "createdAt", "dateOfDonation"])
     .optional()
-    .transform((val) => (val ? new Date(val) : undefined)),
+    .default("createdAt"),
 
-  endDate: z
-    .string()
-    .datetime()
-    .optional()
-    .transform((val) => (val ? new Date(val) : undefined)),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 
-  sortBy: z.enum(["createdAt", "dateOfDonation", "urgency"]).optional(),
-
-  sortOrder: z.enum(["asc", "desc"]).optional(),
-
-  limit: z
-    .string()
-    .transform((val) => Number(val))
-    .optional(),
-
-  page: z
-    .string()
-    .transform((val) => Number(val))
-    .optional(),
+  limit: z.coerce.number().min(1).max(100).optional().default(10),
+  page: z.coerce.number().min(1).optional().default(1),
 });
 
-export type GetRequestsQueryInput = z.infer<typeof getRequestsQuerySchema>;
+export type GetRequestsQueryInput = z.infer<typeof GetRequestsQuerySchema>;
+
+export const normalizeArray = (value?: string | string[]) => {
+  if (!value) return undefined;
+  return Array.isArray(value) ? value : [value];
+};

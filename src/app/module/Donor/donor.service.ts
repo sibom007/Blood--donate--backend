@@ -7,29 +7,136 @@ import httpStatus from "http-status";
 import { Prisma } from "../../../generated/prisma";
 
 const RequestForBloodIntoDB = async (
-  AuthUser: AuthUser | undefined,
+  AuthUser: AuthUser,
   payload: CreateRequestInput,
 ) => {
-   await getActiveUser(AuthUser?.email);
+  await getActiveUser(AuthUser.email);
 
   const result = await db.request.create({
-    data: payload,
+    data: { ...payload, requesterId: AuthUser.id },
   });
 
   return result;
 };
 
-const RequestViewInToDB = async (RequestUser: AuthUser | undefined) => {
-  const user = await getActiveUser(RequestUser?.email)
+const RequestViewInToDB = async (
+  requestUser: AuthUser,
+  query: GetRequestsQueryInput,
+) => {
+  const user = await getActiveUser(requestUser.email);
+
+  const {
+    bloodType,
+    urgency,
+    requestStatus,
+    hospitalName,
+    startDate,
+    endDate,
+    search,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    limit = 10,
+    page = 1,
+  } = query;
+
+  const skip = (page - 1) * limit;
+
+  const filters: Prisma.RequestWhereInput = {
+    requesterId: user.id,
+  };
+
+  // Blood type
+  if (bloodType) {
+    filters.bloodType = bloodType;
+  }
+
+  // Single value urgency
+  if (urgency) {
+    filters.urgency = urgency;
+  }
+
+  // Single value status
+  if (requestStatus) {
+    filters.requestStatus = requestStatus;
+  }
+
+  // Hospital name
+  if (hospitalName) {
+    filters.hospitalName = {
+      contains: hospitalName,
+      mode: "insensitive",
+    };
+  }
+
+  // Date range
+  if (startDate || endDate) {
+    filters.dateOfDonation = {};
+    if (startDate) filters.dateOfDonation.gte = startDate;
+    if (endDate) filters.dateOfDonation.lte = endDate;
+  }
+
+  // Search (ONLY scalar fields)
+  if (search) {
+    filters.AND = [
+      {
+        OR: [
+          {
+            hospitalName: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            hospitalAddress: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            phoneNumber: {
+              contains: search,
+            },
+          },
+        ],
+      },
+    ];
+  }
 
   const result = await db.request.findMany({
-    where: {
-      requesterId: user.id,
+    where: filters,
+
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+
+    skip,
+    take: limit,
+
+    include: {
+      donor: {
+        select: {
+          id: true,
+          name: true,
+          phoneNumber: true,
+          bloodType: true,
+        },
+      },
     },
   });
-  return result;
-};
 
+  const total = await db.request.count({
+    where: filters,
+  });
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  };
+};
 
 const AllRequestViewInToDB = async (
   RequestUser: AuthUser | undefined,
