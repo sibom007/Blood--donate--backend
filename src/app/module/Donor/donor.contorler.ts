@@ -34,7 +34,11 @@ const RequestView = catchAsync(async (req, res) => {
 });
 
 const AllRequestView = catchAsync(async (req, res) => {
-  const result = await DonorRequestservice.AllRequestViewInToDB(req.user,req.query);
+  const parsedQuery = GetRequestsQuerySchema.parse(req.query);
+  const result = await DonorRequestservice.AllRequestViewInToDB(
+    req.user,
+    parsedQuery,
+  );
   sendResponse(res, {
     statusCode: 200,
     success: true,
