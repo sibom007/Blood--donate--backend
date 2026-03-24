@@ -1,6 +1,5 @@
 import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import httpStatus from 'http-status';
 import cookieParser from 'cookie-parser';
@@ -9,10 +8,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "https://blood-donate-frontend-nine.vercel.app",
-    ],
+    origin: ["http://localhost:3000", process.env.CORS_URL!],
     credentials: true,
   }),
 );
