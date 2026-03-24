@@ -11,10 +11,10 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "https://blood-donner-frontend.vercel.app",
+      "https://blood-donate-frontend-nine.vercel.app",
     ],
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
