@@ -9,18 +9,9 @@ const LoginUser = catchAsync(async (req, res) => {
 
   res.cookie("refreshToken", result.refreshToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
-  // res.cookie("refreshToken", result.refreshToken, {
-  //   httpOnly: true,
-  //   secure: process.env.NODE_ENV === "production",
-  //   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  //   path: "/",
-  // });
 
   sendResponse(res, {
     statusCode: 200,
@@ -29,6 +20,9 @@ const LoginUser = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+
+
 
 const refreshToken = catchAsync(async (req, res) => {
   const { refreshToken } = req.cookies;
