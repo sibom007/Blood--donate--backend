@@ -7,12 +7,6 @@ import { clearAuthCookies } from "../../../helper/clearAuthCookies";
 const LoginUser = catchAsync(async (req, res) => {
   const result = await Authservice.LoginIntoDB(req.body);
 
-  res.cookie("refreshToken", result.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  });
-
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -20,6 +14,7 @@ const LoginUser = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
 
 
 
