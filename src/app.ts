@@ -9,7 +9,7 @@ const app = express();
 const allowedOrigins = ["http://localhost:3000", process.env.CORS_URL].filter(
   Boolean,
 );
-
+app.set("trust proxy", 1);
 app.use(
   cors({
     origin: (origin, callback) => {
