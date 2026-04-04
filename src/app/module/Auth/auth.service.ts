@@ -1,16 +1,17 @@
-import AppError from "../../Error/AppError";
-import httpStatus from "http-status";
-
 import bcrypt from "bcrypt";
-import { jwtHelpers } from "../../../helper/jwtHelpers";
+import httpStatus from "http-status";
 import config from "../../../config";
 import { Secret } from "jsonwebtoken";
-
-import { ChangePasswordSchema, LoginSchema, TChangePassword, TLogin } from "./auth.interface";
+import AppError from "../../Error/AppError";
 import { db } from "../../../utils/prisma";
+import { jwtHelpers } from "../../../helper/jwtHelpers";
 import { UserStatus } from "../../../generated/prisma";
+import { AuthUser, ChangePasswordSchema, LoginSchema,
+   TChangePasswordInput, TLoginInput } from "./auth.interface";
 
-const LoginIntoDB = async (payload: TLogin) => {
+
+const LoginIntoDB = async (payload: TLoginInput) => {
+
   const { email, password } = LoginSchema.parse(payload);
 
   const userData = await db.user.findUnique({
@@ -18,25 +19,27 @@ const LoginIntoDB = async (payload: TLogin) => {
       email,
       status: UserStatus.ACTIVE,
     },
+    include:{
+      profile:true
+    }
   });
 
   if (!userData) {
     throw new AppError(httpStatus.NOT_FOUND, "user not exist!");
   }
 
-  const currentpassword = await bcrypt.compare(password, userData.password);
+  const currentpassword = await bcrypt.compare(password, userData.passwordHash);
 
   if (!currentpassword) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Password is not match");
   }
 
-  const token = jwtHelpers.generateToken(
+  const accessToken = jwtHelpers.generateToken(
     {
       id: userData.id,
       name: userData.name,
       email: userData.email,
       role: userData.role,
-      tokenVersion: userData.tokenVersion,
     },
     config.accesToken_secret as Secret,
     config.accesToken_secret_exparein!,
@@ -48,7 +51,6 @@ const LoginIntoDB = async (payload: TLogin) => {
       name: userData.name,
       email: userData.email,
       role: userData.role,
-      tokenVersion: userData.tokenVersion,
     },
     config.refreshToken_secret as Secret,
     config.refreshToken_secret_exparein!,
@@ -59,25 +61,24 @@ const LoginIntoDB = async (payload: TLogin) => {
     name: userData.name,
     role: userData.role,
     bio: userData.bio,
-    tokenVersion: userData.tokenVersion,
-    isAvailable: userData.isAvailable,
+    isAvailable: userData.profile?.isAvailable,
     createdAt: userData.createdAt,
     updatedAt: userData.updatedAt,
   };
 
-  return { token, user: newUser, refreshToken };
+  return { accessToken, user: newUser, refreshToken };
 };
 
-const refreshToken = async (token: string) => {
-  if (!token) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "No refresh token");
+const RefreshToken = async (refreshToken: string) => {
+  if (!refreshToken) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "unauthorised");
   }
 
-  let decodedData;
+  let decodedData
 
   try {
     decodedData = jwtHelpers.verifyToken(
-      token,
+      refreshToken,
       config.refreshToken_secret as Secret,
     );
   } catch {
@@ -87,7 +88,15 @@ const refreshToken = async (token: string) => {
   const userData = await db.user.findUnique({
     where: {
       email: decodedData.email,
+     
     },
+    include:{
+      profile:{
+        select:{
+          isAvailable:true
+        }
+      }
+    }
   });
 
   if (!userData) {
@@ -102,9 +111,9 @@ const refreshToken = async (token: string) => {
   const accessToken = jwtHelpers.generateToken(
     {
       id: userData.id,
+      name:userData.name,
       role: userData.role,
       email: userData.email,
-      tokenVersion: userData.tokenVersion,
     },
     config.accesToken_secret as Secret,
     config.accesToken_secret_exparein!,
@@ -117,32 +126,35 @@ const refreshToken = async (token: string) => {
       name: userData.name,
       email: userData.email,
       role: userData.role,
-      isAvailable: userData.isAvailable,
+      isAvailable: userData.profile?.isAvailable,
     },
   };
 };
 
-const ChangePassword = async (payload: TChangePassword) => {
+const ChangePassword = async (payload: TChangePasswordInput) => {
   const { newPassword, oldPassword, email } =
     ChangePasswordSchema.parse(payload);
 
   const userData = await db.user.findUnique({
     where: {
       email,
-      status: UserStatus.ACTIVE,
     },
   });
 
   if (!userData) {
     throw new AppError(httpStatus.NOT_FOUND, "user not exist!");
   }
+  
+  if (userData.status !== UserStatus.ACTIVE) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User is inactive");
+  }
 
-  const iscurrectPassword = await bcrypt.compare(
+  const isCurrectPassword = await bcrypt.compare(
     oldPassword,
-    userData.password,
+    userData.passwordHash,
   );
 
-  if (!iscurrectPassword) {
+  if (!isCurrectPassword) {
     throw new AppError(httpStatus.BAD_REQUEST, "Password incorrect!");
   }
 
@@ -156,15 +168,15 @@ const ChangePassword = async (payload: TChangePassword) => {
       email: userData.email,
     },
     data: {
-      password: hashedPassword,
+      passwordHash: hashedPassword,
     },
   });
 
-  return;
+  return null;
 };
 
 export const Authservice = {
   LoginIntoDB,
-  refreshToken,
+  RefreshToken,
   ChangePassword,
 };

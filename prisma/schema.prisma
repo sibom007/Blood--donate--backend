@@ -8,117 +8,287 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  VOLUNTEER
+}
+
 enum BloodGroup {
-  A_POSITIVE @map("A+")
-  B_POSITIVE @map("B+")
-  A_NEGATIVE @map("A-")
-  B_NEGATIVE @map("B-")
-  AB_POSITIVE @map("AB+")
-  AB_NEGATIVE @map("AB-")
-  O_POSITIVE @map("O+")
-  O_NEGATIVE @map("O-")
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+}
+
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum RequestStatus {
   PENDING
+  OPEN
+  MATCHING
+  FULFILLED
+  CANCELLED
+  EXPIRED
+}
+
+enum AssignmentStatus {
+  PENDING
   ACCEPTED
-  COMPLETED
+  REJECTED
+  TIMED_OUT
   CANCELLED
 }
 
-enum Role {
+enum AssignedBy {
+  SYSTEM
   ADMIN
   VOLUNTEER
+}
+
+enum ActorType {
   USER
+  SYSTEM
 }
 
-enum UserStatus {
-  ACTIVE
-  BLOCKED
+enum EventType {
+REQUEST_CREATED
+DONOR_ACCEPTED
+NO_DONOR_FOUND
+ASKED_FOR_REQUEST_CANCELLED
 }
 
-enum UrgencyLevel {
-  NORMAL
-  URGENT
-  CRITICAL
+enum EntityType {
+  BLOOD_REQUEST
 }
+
+enum ForwardReason {
+  NO_RESPONSE
+  REJECTED
+  DONOR_NOT_ELIGIBLE
+  DONOR_UNAVAILABLE
+  MANUAL_FORWARD
+  OTHER
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  VERIFIED
+}
+
+/* -------------------- USERS -------------------- */
 
 model User {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  name             String
-  email            String   @unique
-  password         String
-
-  role             Role     @default(USER)
-  tokenVersion     Int      @default(0)
-
-  bloodType        BloodGroup
-
-  age              Int
-  phoneNumber      String
-  city             String
-
-  bio              String?
-  photo            String?
-
-  lastDonationDate DateTime?
-
-  isAvailable      Boolean  @default(true)
-
-  latitude         Float?
-  longitude        Float?
-
-  status           UserStatus @default(ACTIVE)
-
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  donatedRequests  Request[] @relation("DonorRequests")
-  createdRequests  Request[] @relation("RequesterRequests")
-}
-
-model Request {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-
-  bloodType        BloodGroup
-
-  phoneNumber      String
-  dateOfDonation   DateTime
-
-  hospitalName     String
-  hospitalAddress  String
-
-  description      String?
-
-  urgency          UrgencyLevel @default(NORMAL)
-
-  requestStatus    RequestStatus @default(PENDING)
-
-  donorId          String? @db.ObjectId
-  requesterId      String  @db.ObjectId
-
-  donor            User?  @relation("DonorRequests", fields: [donorId], references: [id])
-  requester        User   @relation("RequesterRequests", fields: [requesterId], references: [id])
-
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-model DonationEvent {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  location    String
-  date        DateTime
-  description String?
-
-  createdAt   DateTime @default(now())
-}
-
-model Notification {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  message   String
-  isRead    Boolean  @default(false)
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  email           String   @unique
+  phone           String  @unique
+  passwordHash    String
+  photoUrl        String?
+  bio             String?
+  status          UserStatus @default(ACTIVE)
+  role            UserRole @default(USER)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  profile             UserProfile?
+  requestsCreated     BloodRequest[]       @relation("RequesterRequests")
+  assignments         RequestAssignment[]  @relation("DonorAssignments")
+  notifications       Notification[]
+  events              Event[]              @relation("ActorEvents")
+  donationsAsDonor    Donation[]           @relation("DonationsDonor")
+  donationsAsRequester Donation[]          @relation("DonationsRequester")
+}
+
+/* Donor/requester extended info */
+model UserProfile {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String @unique @db.ObjectId
+  user        User   @relation(fields: [userId], references: [id])
+
+  bloodGroup  BloodGroup
+  dateOfBirth DateTime
+
+  city        String
+  address     String
+
+  latitude    Float
+  longitude   Float
+
+  isAvailable   Boolean  @default(true)
+  lastDonatedAt DateTime?
+  eligibleAfter DateTime?
+
+  // Optional (be careful: sensitive)
+  medicalNotes String?
+
+  updatedAt DateTime @updatedAt
+}
+
+/* -------------------- BLOOD REQUEST -------------------- */
+
+model BloodRequest {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+
+  requesterId String @db.ObjectId
+  requester   User   @relation("RequesterRequests", fields: [requesterId], references: [id])
+
+  patientName     String?
+  bloodGroup      BloodGroup
+  unitsNeeded     Int
+  urgency         Urgency @default(MEDIUM)
+  neededAt        DateTime
+
+  city            String
+  hospitalName    String
+  hospitalAddress String
+  locationLat     Float?
+  locationLng     Float?
+
+  description     String?
+  status          RequestStatus @default(PENDING)
+
+  // Optional “final matched donor” when fulfilled
+  matchedDonorId  String? @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  assignments RequestAssignment[]
+  donations   Donation[]
+
+  @@index([requesterId])
+  @@index([status])
+  @@index([bloodGroup, city])
+  @@index([neededAt])
+}
+
+/* -------------------- ASSIGNMENT (accept/reject/timeout/forward) -------------------- */
+
+model RequestAssignment {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+
+  requestId String      @db.ObjectId
+  request   BloodRequest @relation(fields: [requestId], references: [id])
+
+  donorId   String @db.ObjectId
+  donor     User   @relation("DonorAssignments", fields: [donorId], references: [id])
+
+  assignedBy       AssignedBy @default(SYSTEM)
+  assignedByUserId String?    @db.ObjectId
+
+  status            AssignmentStatus @default(PENDING)
+  assignedAt        DateTime @default(now())
+  responseDeadlineAt DateTime
+  respondedAt       DateTime?
+  responseNote      String?
+
+  forwardReason     ForwardReason?
+
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
+  @@index([donorId])
+  @@index([status, responseDeadlineAt])
+}
+
+/* -------------------- NOTIFICATIONS -------------------- */
+
+model Notification {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId  String @db.ObjectId
+  user    User   @relation(fields: [userId], references: [id])
+
+  type    String
+  title   String
+  body    String
+  channel NotificationChannel @default(IN_APP)
+
+  // Store ids and extra info (requestId, assignmentId, etc.)
+  data    Json?
+
+  readAt  DateTime?
+  sentAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+/* -------------------- EVENTS / AUDIT LOG -------------------- */
+
+model Event {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+
+  actorUserId String? @db.ObjectId  // who create the event
+  actor       User?   @relation("ActorEvents", fields: [actorUserId], references: [id])
+
+  actorType   ActorType // "USER" | "SYSTEM" (string keeps it flexible)
+  eventType   EventType // e.g. REQUEST_CREATED, DONOR_ACCEPTED
+  entityType  EntityType // e.g. blood_request, request_assignment
+  entityId    String  @db.ObjectId // request id
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([eventType])
+  @@index([entityType, entityId])
+}
+
+/* -------------------- DONATIONS (fulfillment record) -------------------- */
+
+model Donation {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+
+  requestId   String @db.ObjectId
+  request     BloodRequest @relation(fields: [requestId], references: [id])
+
+  donorId     String @db.ObjectId
+  donor       User   @relation("DonationsDonor", fields: [donorId], references: [id])
+
+  requesterId String @db.ObjectId
+  requester   User   @relation("DonationsRequester", fields: [requesterId], references: [id])
+
+  donatedAt    DateTime
+  unitsDonated Int
+
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  verifiedById       String? @db.ObjectId
+  notes              String?
+
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
+  @@index([donorId])
+  @@index([requesterId])
 }

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { AuthRoutes } from "../app/module/Auth/auth.routs";
-import { UserRoutes } from '../app/module/user/user.routs';
-import { DonorRoutes } from "../app/module/Donor/donor.routs";
+import { UserRoutes } from "../app/module/user/user.routs";
+import { RequestRoutes } from "../app/module/blood-request/request.routes";
 
 const router = Router();
 
@@ -14,9 +14,10 @@ const moduleRoutes = [
     path: "/",
     route: UserRoutes,
   },
+ 
   {
     path: "/",
-    route: DonorRoutes,
+    route: RequestRoutes,
   },
 ];
 

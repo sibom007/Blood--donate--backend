@@ -16,12 +16,9 @@ const LoginUser = catchAsync(async (req, res) => {
 });
 
 
-
-
-
 const refreshToken = catchAsync(async (req, res) => {
   const { refreshToken } = req.cookies;
-  const result = await Authservice.refreshToken(refreshToken);
+  const result = await Authservice.RefreshToken(refreshToken);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -30,9 +27,9 @@ const refreshToken = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
 const logout = catchAsync(async (req, res) => {
   const result = clearAuthCookies(res);
-
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
