@@ -123,8 +123,8 @@ const auth = (...roles: string[]) => {
       /* // refresh token missing
       if (!refreshToken) {
         throw new AppError(httpStatus.UNAUTHORIZED, "REFRESH_TOKEN_MISSING");
-      } 
-      */
+        } 
+        */
 
       const accessToken = authHeader.startsWith("Bearer ")
         ? authHeader.split(" ")[1]
@@ -140,6 +140,7 @@ const auth = (...roles: string[]) => {
           config.accesToken_secret as Secret,
         ) as TokenPayload;
       } catch (error: any) {
+        console.log("🚀 ~ auth ~ error:", error);
         if (error.name === "TokenExpiredError") {
           throw new AppError(httpStatus.UNAUTHORIZED, "ACCESS_TOKEN_EXPIRED");
         }

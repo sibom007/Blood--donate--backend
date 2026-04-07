@@ -202,13 +202,10 @@ export const updateRequestStatusInToDB = async (
   { status }: BloodRequestStatusInput,
 ) => {
   const now = new Date();
-
-  // Define constants (Should ideally come from a config file)
   const DONATION_GAP_DAYS = 90;
   const donationCutoffDate = new Date();
   donationCutoffDate.setDate(now.getDate() - DONATION_GAP_DAYS);
 
-  /* -------------------- 1. INITIAL CHECK -------------------- */
   const request = await db.bloodRequest.findUnique({
     where: { id: requestId },
   });
@@ -217,57 +214,37 @@ export const updateRequestStatusInToDB = async (
     throw new AppError(httpStatus.NOT_FOUND, "Blood Request Not Found!");
   }
 
-  /* -------------------- 2. TRANSACTION START -------------------- */
   return await db.$transaction(async (tx) => {
-    // --- CASE: CANCELLED ---
+    /* -------------------- CASE: CANCELLED -------------------- */
     if (status === "CANCELLED") {
+      // Clean up active pings
       await tx.requestAssignment.deleteMany({ where: { requestId } });
-      await tx.notification.deleteMany({
-        where: { data: { equals: { requestId } } },
-      });
-      await tx.event.deleteMany({ where: { entityId: requestId } });
 
+      // Update status and clear any forward reasons
       return await tx.bloodRequest.update({
         where: { id: requestId },
-        data: { status: "CANCELLED" },
+        data: { status: "CANCELLED", forwardReason: null },
       });
-    }
-
-    // --- CASE: EXPIRED ---
-    else if (status === "EXPIRED") {
-      // Mark all pending assignments as expired so they disappear from donor apps
+    } else if (status === "EXPIRED") {
+      /* -------------------- CASE: EXPIRED -------------------- */
       await tx.requestAssignment.updateMany({
         where: { requestId, status: "PENDING" },
         data: { status: "TIMED_OUT" },
-      });
-
-      // Clear notifications to avoid "ghost" pings
-      await tx.notification.deleteMany({
-        where: { data: { equals: { requestId } } },
       });
 
       return await tx.bloodRequest.update({
         where: { id: requestId },
         data: { status: "EXPIRED" },
       });
-    }
-
-    // --- CASE: FULFILLED ---
-    else if (status === "FULFILLED") {
-      // Close all other pending pings
-      await tx.requestAssignment.updateMany({
-        where: { requestId, status: "PENDING" },
-        data: { status: "CANCELLED" },
+    } else if (status === "IN_PROGRESS") {
+      // --- Cleanup old failed assignments before re-matching ---
+      await tx.requestAssignment.deleteMany({
+        where: {
+          requestId,
+          status: { in: ["PENDING", "TIMED_OUT", "REJECTED"] },
+        },
       });
 
-      return await tx.bloodRequest.update({
-        where: { id: requestId },
-        data: { status: "FULFILLED" },
-      });
-    }
-
-    // --- CASE: OPEN (The Matching Engine) ---
-    else if (status === "OPEN") {
       // 1. Fetch eligible donors
       const donors = await tx.userProfile.findMany({
         where: {
@@ -282,7 +259,7 @@ export const updateRequestStatusInToDB = async (
         },
       });
 
-      // 2. Distance Calculation & Sorting
+      // 2. Distance Calculation & Sorting (Logic remains same)
       const targetCity = request.city.trim().toLowerCase();
       const rankedDonors = donors
         .map((donor) => ({
@@ -304,63 +281,76 @@ export const updateRequestStatusInToDB = async (
           if (!aMatch && bMatch) return 1;
           return a.distance - b.distance;
         })
-        .slice(0, 5); // Limit to top 5 donors
+        .slice(0, 1);
+        
 
-      // 3. Handle "No Donor Found"
+      // 3. Handle Results
       if (rankedDonors.length === 0) {
         await tx.event.updateMany({
           where: { entityId: requestId, eventType: "REQUEST_CREATED" },
           data: { eventType: "NO_DONOR_FOUND", metadata: { matched: false } },
         });
-      } else {
-        // 4. Bulk Create Assignments
-        const deadlineHours = ["HIGH", "CRITICAL"].includes(request.urgency)
-          ? 12
-          : 24;
-        const deadlineDate = new Date(
-          now.getTime() + deadlineHours * 60 * 60 * 1000,
-        );
 
-        const assignments: Prisma.RequestAssignmentCreateManyInput[] =
-          rankedDonors.map((donor) => ({
-            requestId,
-            donorId: donor.userId,
-            status: "PENDING",
-            assignedBy: "SYSTEM",
-            assignedAt: now,
-            responseDeadlineAt: deadlineDate,
-          }));
-
-        const notifications: Prisma.NotificationCreateManyInput[] =
-          rankedDonors.map((donor) => ({
-            userId: donor.userId,
-            type: "NEW_ASSIGNMENT",
-            title: "Blood Request Assigned",
-            body: `Urgent ${request.bloodGroup} requirement in ${request.city}`,
-            data: { requestId },
-          }));
-
-        await tx.requestAssignment.createMany({ data: assignments });
-        await tx.notification.createMany({ data: notifications });
-
-        // 5. Update Audit Event
-        await tx.event.updateMany({
-          where: { entityId: requestId, eventType: "REQUEST_CREATED" },
-          data: {
-            metadata: { matched: true, totalDonors: rankedDonors.length },
-          },
+        // Return early - keep status as IN_PROGRESS if no donors found
+        return await tx.bloodRequest.update({
+          where: { id: requestId },
+          data: { status: "IN_PROGRESS", forwardReason: "OTHER" },
         });
       }
+
+      // 4. Create Assignments & Notifications
+      let deadlineHours: number;
+
+      switch (request.urgency) {
+        case "CRITICAL":
+          deadlineHours = 12;
+          break;
+        case "HIGH":
+          deadlineHours = 24;
+          break;
+        case "MEDIUM":
+          deadlineHours = 48; // 2 Days
+          break;
+        case "LOW":
+          deadlineHours = 72; // 3 Days
+          break;
+        default:
+          deadlineHours = 24; // Safe fallback
+      }
+
+      const deadlineDate = new Date(
+        now.getTime() + deadlineHours * 60 * 60 * 1000,
+      );
+
+      await tx.requestAssignment.createMany({
+        data: rankedDonors.map((donor) => ({
+          requestId,
+          donorId: donor.userId,
+          status: "PENDING",
+          assignedBy: "SYSTEM",
+          responseDeadlineAt: deadlineDate,
+        })),
+      });
+
+      // 5. Update Audit Event & Blood Request
+      await tx.event.updateMany({
+        where: { entityId: requestId, eventType: "REQUEST_CREATED" },
+        data: {
+          eventType: "REQUEST_CREATED", // Reset event type if it was NO_DONOR_FOUND
+          metadata: { matched: true, totalDonors: rankedDonors.length },
+        },
+      });
 
       return await tx.bloodRequest.update({
         where: { id: requestId },
         data: {
           status: "MATCHING",
+          forwardReason: null,
         },
       });
     }
 
-    // --- DEFAULT CASE (For generic updates like REJECTED/PENDING) ---
+    // --- DEFAULT CASE ---
     return await tx.bloodRequest.update({
       where: { id: requestId },
       data: { status },
@@ -376,7 +366,7 @@ export const requestForCancellationInToDB = async (
     where: {
       id: requestId,
       status: {
-        in: ["OPEN", "PENDING", "MATCHING"],
+        in: ["IN_PROGRESS", "PENDING", "MATCHING"],
       },
     },
   });

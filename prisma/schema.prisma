@@ -41,7 +41,7 @@ enum Urgency {
 
 enum RequestStatus {
   PENDING
-  OPEN
+  IN_PROGRESS
   MATCHING
   FULFILLED
   CANCELLED
@@ -71,6 +71,7 @@ enum EventType {
 REQUEST_CREATED
 DONOR_ACCEPTED
 NO_DONOR_FOUND
+REQUEST_CANCELLED
 ASKED_FOR_REQUEST_CANCELLED
 }
 
@@ -177,6 +178,8 @@ model BloodRequest {
 
   // Optional “final matched donor” when fulfilled
   matchedDonorId  String? @db.ObjectId
+  
+  forwardReason ForwardReason?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
