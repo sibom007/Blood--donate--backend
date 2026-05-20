@@ -1,18 +1,18 @@
 import express from 'express';
-import { UserControllers } from './user.contorler';
-import { userValidation } from './user.zodvalidation';
-import validateRequest from '../../middlewares/validateRequest';
-import auth from '../../middlewares/auth';
-import { Role } from '@prisma/client';
-
+import { Role } from "@prisma/client";
+import auth from "../../middlewares/auth";
+import { UserControllers } from "./user.contorler";
+import { createUserSchema } from "./user.interface";
+import validateRequest from "../../middlewares/validateRequest";
 
 const router = express.Router();
 
 router.post(
-  '/register',
-  validateRequest(userValidation.createUser),
-  UserControllers.createUser
+  "/register",
+  validateRequest(createUserSchema),
+  UserControllers.createUser,
 );
+
 router.get(
   '/donor-list',
   UserControllers.getdonorUser

@@ -5,13 +5,13 @@ import { userFilterableFields } from './user.constant';
 import { userservise } from './user.service';
 
 const createUser = catchAsync(async (req, res) => {
-  const { user, userProfile } = await userservise.createUserIntoDB(req.body);
+  const result = await userservise.createUserIntoDB(req.body);
 
   sendResponse(res, {
     statusCode: 201,
     success: true,
-    message: 'User registered successfully',
-    data: { ...user, userProfile },
+    message: "User registered successfully",
+    data: result,
   });
 });
 

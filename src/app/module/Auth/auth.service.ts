@@ -1,81 +1,97 @@
+import bcrypt from "bcrypt";
 import httpStatus from "http-status";
-import prisma from "../../../utils/prisma";
-import AppError from "../../Error/AppError";
-import { Tlogin } from "./auth.interface";
-import bcrypt from 'bcrypt';
-import { jwtHelpers } from "../../../helper/jwtHelpers";
 import config from "../../../config";
 import { Secret } from "jsonwebtoken";
-import { UserStatus } from '@prisma/client';
+import db from "../../../utils/prisma";
+import prisma from "../../../utils/prisma";
+import AppError from "../../Error/AppError";
+import { UserStatus } from "@prisma/client";
+import { loginInput } from "./auth.interface";
+import { CustomJwtPayload, jwtHelpers } from "../../../helper/jwtHelpers";
 
-const LoginIntoDB = async (payload: Tlogin) => {
+const LoginIntoDB = async (payload: loginInput) => {
+  const existingUser = await db.user.findUnique({
+    where: { email: payload.email },
+  });
 
-    const userData = await prisma.user.findUniqueOrThrow({
-        where: {
-            email: payload.email
-        }
-    })
-
-    const currentpassword = await bcrypt.compare(payload.password, userData.password);
-    if (!currentpassword) {
-        throw new AppError(httpStatus.UNAUTHORIZED, "Password is not match",)
-    }
-
-    const token = jwtHelpers.generateToken({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role
-    },
-        config.accesToken_secret as Secret,
-        "30d"
-
+  if (!existingUser) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "A user with this email dose not exists.",
     );
+  }
+  const currentpassword = await bcrypt.compare(
+    payload.password,
+    existingUser.password,
+  );
 
-    const refreshToken = jwtHelpers.generateToken({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role
+  if (!currentpassword) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Password is not match");
+  }
+
+  const token = jwtHelpers.generateToken(
+    {
+      id: existingUser.id,
+      name: existingUser.name,
+      email: existingUser.email,
+      role: existingUser.role,
     },
-        config.refreshToken_secret as Secret,
-        "30d"
+    config.accesToken_secret as Secret,
+    config.accesToken_secret_exparein!,
+  );
 
-    );
-    return { token, userData, refreshToken, }
+  const refreshToken = jwtHelpers.generateToken(
+    {
+      id: existingUser.id,
+      name: existingUser.name,
+      email: existingUser.email,
+      role: existingUser.role,
+    },
+    config.refreshToken_secret as Secret,
+    config.refreshToken_secret_exparein!,
+  );
+
+  return {
+    token,
+    refreshToken,
+    user: {
+      id: existingUser.id,
+      email: existingUser.email,
+    },
+  };
 };
 
-
-
 const refreshToken = async (token: string) => {
-    let decodedData;
-    try {
-        decodedData = jwtHelpers.verifyToken(token, 'abcdefghgijklmnop');
-    }
-    catch (err) {
-        throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized!")
-    }
+  let decodedData: CustomJwtPayload;
+  try {
+    decodedData = jwtHelpers.verifyToken(token, config.refreshToken_secret!)
+  } catch (err) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized!");
+  }
 
-    const userData = await prisma.user.findUniqueOrThrow({
-        where: {
-            email: decodedData.email,
-            status: UserStatus.ACTIVE
-        }
-    });
-
-    const accessToken = jwtHelpers.generateToken({
-        email: userData.email,
-        role: userData.role
+  const userData = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: decodedData.email,
+      status: UserStatus.ACTIVE,
     },
-        config.accesToken_secret as Secret,
-        "30d"
-    );
+  });
 
-    return {
-        accessToken,
-    };
+  const accessToken = jwtHelpers.generateToken(
+    {
+    id:userData.id,
+    email:userData.email,
+    name:userData.name,
+    role:userData.role
+    },
+    config.accesToken_secret as Secret,
+    config.accesToken_secret_exparein!,
+  );
 
-}
+  return {
+    accessToken,
+  };
+};
+
 
 const ChangePassword = async (payload: any, user: any) => {
     const userData = await prisma.user.findUniqueOrThrow({
