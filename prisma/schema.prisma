@@ -2,11 +2,13 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
+
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  
 }
 
 model user {
@@ -21,7 +23,8 @@ model user {
   availability Boolean     @default(true)
   bio               String
   age               Int
-  lastDonationDate  String
+  lastDonationDate  String?
+  bloodDonner    BloodDonner @default(YES)
 
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -69,6 +72,11 @@ enum RequestStatus {
 enum Role {
   USER
   ADMIN
+}
+
+enum BloodDonner {
+  YES
+  NO
 }
 
 enum UserStatus { 

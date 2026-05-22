@@ -1,7 +1,7 @@
-import { Role } from "@prisma/client"
 import { z } from "zod";
 import config from "../../../config";
 import { StringValue } from "ms";
+import { Role } from "../../../generated/prisma";
 
 export const loginSchema = z.object({
   email: z
@@ -20,11 +20,9 @@ export type loginInput = z.infer<typeof loginSchema>;
 
 export const Tokenduration = config.refreshToken_secret_exparein as StringValue;
 
-
-
 export type TokenUser = {
-    id: string
-    name: string
-    email: string
-    role: Role;
-}
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+};

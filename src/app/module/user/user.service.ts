@@ -2,11 +2,10 @@
 import { CreateUserInput, IPaginationOptions } from "./user.interface";
 import { paginationHelper } from "../../../helper/paginationHelper";
 import { userSearchAbleFields } from "./user.constant";
-import { TToken } from "../Auth/auth.interface";
-import db from "../../../utils/prisma";
 import bcrypt from "bcrypt";
 import AppError from "../../Error/AppError";
 import httpStatus from "http-status";
+import { db } from "../../../utils/prisma";
 
 const createUserIntoDB = async (payload: CreateUserInput) => {
   // 1. Check if user already exists
@@ -22,13 +21,15 @@ const createUserIntoDB = async (payload: CreateUserInput) => {
   }
 
   // 2. Hash password safely (12 rounds takes ~250ms; secure yet fast)
-  const hashedPassword = await bcrypt.hash(payload.password, 24);
+  const hashedPassword = await bcrypt.hash(payload.password!, 10);
 
   // 3. Create the user in the database
   const result = await db.user.create({
     data: {
       ...payload,
       password: hashedPassword,
+      role: "USER",
+      age: Number(payload.age),
     },
     select: {
       id: true,
@@ -45,6 +46,7 @@ const createUserIntoDB = async (payload: CreateUserInput) => {
       createdAt: true,
     },
   });
+  console.log("🚀 ~ createUserIntoDB ~ result:", result);
 
   return result;
 };
@@ -144,29 +146,19 @@ const getdonorUserIntoDB = async (params: any, options: IPaginationOptions) => {
   };
 };
 
-const getUserProfileIntoDB = async (payload: TToken) => {
-  const result = await db.user.findUniqueOrThrow({
+const getUserProfileIntoDB = async (payload) => {
+  console.log("🚀 ~ getUserProfileIntoDB ~ payload:", payload);
+
+  const result = await db.user.findFirst({
     where: {
-      id: payload.id,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      status: true,
-      location: true,
-      bloodType: true,
-      availability: true,
-      createdAt: true,
-      updatedAt: true,
-      profile: true,
+      id: payload.email,
     },
   });
+
   return result;
 };
 
-const UpdateUserProfileIntoDB = async (user: TToken, payload) => {
+const UpdateUserProfileIntoDB = async (user, payload) => {
   return "result";
 };
 

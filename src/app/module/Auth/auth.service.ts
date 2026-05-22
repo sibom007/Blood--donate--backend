@@ -2,12 +2,12 @@ import bcrypt from "bcrypt";
 import httpStatus from "http-status";
 import config from "../../../config";
 import { Secret } from "jsonwebtoken";
-import db from "../../../utils/prisma";
-import prisma from "../../../utils/prisma";
+
 import AppError from "../../Error/AppError";
-import { UserStatus } from "@prisma/client";
 import { loginInput } from "./auth.interface";
 import { CustomJwtPayload, jwtHelpers } from "../../../helper/jwtHelpers";
+import { db } from "../../../utils/prisma";
+import { UserStatus } from "../../../generated/prisma";
 
 const LoginIntoDB = async (payload: loginInput) => {
   const existingUser = await db.user.findUnique({
@@ -64,12 +64,12 @@ const LoginIntoDB = async (payload: loginInput) => {
 const refreshToken = async (token: string) => {
   let decodedData: CustomJwtPayload;
   try {
-    decodedData = jwtHelpers.verifyToken(token, config.refreshToken_secret!)
+    decodedData = jwtHelpers.verifyToken(token, config.refreshToken_secret!);
   } catch (err) {
     throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized!");
   }
 
-  const userData = await prisma.user.findUniqueOrThrow({
+  const userData = await db.user.findUniqueOrThrow({
     where: {
       email: decodedData.email,
       status: UserStatus.ACTIVE,
@@ -78,10 +78,10 @@ const refreshToken = async (token: string) => {
 
   const accessToken = jwtHelpers.generateToken(
     {
-    id:userData.id,
-    email:userData.email,
-    name:userData.name,
-    role:userData.role
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      role: userData.role,
     },
     config.accesToken_secret as Secret,
     config.accesToken_secret_exparein!,
@@ -92,36 +92,36 @@ const refreshToken = async (token: string) => {
   };
 };
 
-
 const ChangePassword = async (payload: any, user: any) => {
-    const userData = await prisma.user.findUniqueOrThrow({
-        where: {
-            email: user.email,
-            status: UserStatus.ACTIVE
-        }
-    })
+  const userData = await db.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+      status: UserStatus.ACTIVE,
+    },
+  });
 
+  const iscurrectPassword = await bcrypt.compare(
+    payload.oldPassword,
+    userData?.password,
+  );
 
-    const iscurrectPassword = await bcrypt.compare(payload.oldPassword, userData?.password);
+  if (!iscurrectPassword) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Password incorrect!");
+  }
 
-    if (!iscurrectPassword) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Password incorrect!")
-    }
+  const hashedPassword: string = await bcrypt.hash(payload.newPassword, 12);
 
-    const hashedPassword: string = await bcrypt.hash(payload.newPassword, 12);
+  await db.user.update({
+    where: {
+      email: userData.email,
+    },
+    data: {
+      password: hashedPassword,
+    },
+  });
 
-    await prisma.user.update({
-        where: {
-            email: userData.email
-        },
-        data: {
-            password: hashedPassword,
-        }
-    })
-
-    return null
-
-}
+  return null;
+};
 
 
 

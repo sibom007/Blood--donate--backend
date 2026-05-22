@@ -1,9 +1,10 @@
 import express from 'express';
 import { Donorcontorler } from './donor.contorler';
 import auth from '../../middlewares/auth';
-import { Role } from '@prisma/client';
+
 import validateRequest from '../../middlewares/validateRequest';
 import { donorValidation } from './donor.validation';
+import { Role } from "../../../generated/prisma";
 
 
 

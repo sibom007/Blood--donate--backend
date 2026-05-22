@@ -11,6 +11,8 @@ router.post(
     AuthControllers.refreshToken
 )
 
+router.post("/logout", AuthControllers.logout);
+
 router.post(
     '/change-password',
     AuthControllers.changepassword

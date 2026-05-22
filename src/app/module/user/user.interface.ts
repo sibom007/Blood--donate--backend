@@ -22,8 +22,9 @@ export type IPaginationOptions = {
   sortOrder?: string | undefined;
 };
 
-import { BloodGroup, Role, UserStatus } from "@prisma/client";
+
 import { z } from "zod";
+import { BloodDonner, BloodGroup } from "../../../generated/prisma";
 
 export const createUserSchema = z.object({
   name: z
@@ -45,32 +46,21 @@ export const createUserSchema = z.object({
     })
     .min(6, "Password must be at least 6 characters"),
 
-  role: z.nativeEnum(Role),
-
-  status: z.nativeEnum(UserStatus),
-
   bloodType: z.nativeEnum(BloodGroup),
 
   location: z.string({
     required_error: "Location is required",
   }),
 
-  availability: z.boolean().default(true),
-
   bio: z.string({
     required_error: "Bio is required",
   }),
 
-  age: z
-    .number({
-      required_error: "Age is required",
-    })
-    .int()
-    .positive(),
-
-  lastDonationDate: z.string({
-    required_error: "Last donation date is required",
+  age: z.string({
+    required_error: "Age is required",
   }),
+
+  bloodDonner: z.nativeEnum(BloodDonner),
 });
 
 // This infers the TypeScript type directly from the schema
