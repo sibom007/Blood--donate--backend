@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model user {
+  id               String      @id @default(uuid())
+  name             String
+  email            String      @unique
+  password         String
+  role             Role
+  status           UserStatus  @default(ACTIVE)
+  bloodType        BloodGroup
+  location         String
+  availability     Boolean     @default(true)
+  bio              String
+  age              Int
+  lastDonationDate String?
+  bloodDonner      BloodDonner @default(YES)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  donorOf     request[] @relation("Donor")
+  requesterOf request[] @relation("Requester")
+}
+
+model request {
+  id String @id @default(uuid())
+
+  requesterId String
+  donorId     String
+
+  phoneNumber     String
+  dateOfDonation  String
+  hospitalName    String
+  hospitalAddress String
+  reason          String
+  requestStatus   RequestStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  donor     user @relation("Donor", fields: [donorId], references: [id])
+  requester user @relation("Requester", fields: [requesterId], references: [id])
+}
+
+enum BloodGroup {
+  A_POS
+  B_POS
+  A_NEG
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BloodDonner {
+  YES
+  NO
+}
+
+enum UserStatus {
+  ACTIVE
+  BlOCKED
+}
