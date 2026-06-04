@@ -1,121 +1,80 @@
-import { Request, RequestStatus } from "@prisma/client";
-import prisma from "../../../utils/prisma";
-import { TToken } from "../Auth/auth.interface";
 import AppError from "../../Error/AppError";
 import httpStatus from "http-status";
+import { db } from "../../../utils/prisma";
+import { TokenUser } from "../auth/auth.interface";
+import { CreateBloodRequestInput } from "./donor.interface";
 
-const DonorRequestIntoDB = async (payloadUser: TToken, Payload: Request) => {
+const createBloodRequestIntoDB = async (
+  authUser: TokenUser,
+  payload: CreateBloodRequestInput,
+) => {
+  const requester = await db.user.findUnique({
+    where: {
+      email: authUser?.email,
+    },
+  });
 
+  if (!requester) {
+    throw new AppError(httpStatus.NOT_FOUND, "Requester not found");
+  }
 
-    const user = await prisma.user.findUnique({
-        where: {
-            email: payloadUser.email
-        }
-    })
+  if (payload.donorId) {
+    const donor = await db.user.findUnique({
+      where: {
+        id: payload.donorId,
+      },
+    });
 
-    if (!user) {
-        throw new AppError(httpStatus.NOT_FOUND, "User not found")
-    }
-    console.log(user);
-    const result = await prisma.request.create({
-        data: {
-            phoneNumber: Payload.phoneNumber,
-            hospitalName: Payload.hospitalName,
-            hospitalAddress: Payload.hospitalAddress,
-            reason: Payload.reason,
-            dateOfDonation: Payload.dateOfDonation,
-            requestStatus: RequestStatus.PENDING,
-            donor:{
-                connect: {
-                    id: Payload.donorId,
-                },
-            } as any ,
-            requester:{
-                connect: {
-                    id: user.id
-                },
-            } as any,
-        },
-        select: {
-            id: true,
-            phoneNumber: true,
-            hospitalName: true,
-            hospitalAddress: true,
-            reason: true,
-            dateOfDonation: true,
-            requestStatus: true,
-            donorId: true,
-            requesterId: true,
-            donor: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    bloodType: true,
-                    location: true,
-                    availability: true,
-                    profile: true,
-                    createdAt: true,
-                    updatedAt: true,
-                }
-            }
-        }
+    if (!donor) {
+      throw new AppError(httpStatus.NOT_FOUND, "Donor not found");
     }
 
-    )
-    return result;
-
-}
-const GetDonorRequestIntoDB = async (payloadUser: TToken) => {
-
-    const user = await prisma.user.findUnique({
-        where: {
-            email: payloadUser.email
-        }
-    })
-
-    if (!user) {
-        throw new AppError(httpStatus.NOT_FOUND, "User not found")
+    if (!donor.isDonor) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Selected user is not a donor",
+      );
     }
-    const result = await prisma.request.findMany({
-        where: {
-            requesterId: user.id,
 
-        }, include: {
-            requester: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    bloodType: true,
-                    location: true,
-                    availability: true,
-                    profile: true,
-                    createdAt: true,
-                    updatedAt: true,
-                }
-            }
-        }
-    })
-    return result;
+    if (!donor.availability) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Donor is currently unavailable",
+      );
+    }
+  }
 
-}
+  if (payload.inventoryId) {
+    const inventory = await db.inventory.findUnique({
+      where: {
+        id: payload.inventoryId,
+      },
+    });
 
-const UpdateDonorRequestIntoDB = async (id: string, payload: { status : RequestStatus }) => {
-    const result = await prisma.request.update({
-        where: {
-            id: id,
-        },
-        data:{
-            requestStatus: payload.status,
-        }
-    })  
-    return result;
+    if (!inventory) {
+      throw new AppError(httpStatus.NOT_FOUND, "Blood inventory not found");
+    }
 
-}
+    if (!inventory.isAvailable) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Blood unit is unavailable");
+    }
+
+    if (inventory.testStatus !== "TESTED") {
+      throw new AppError(httpStatus.BAD_REQUEST, "Blood has not been tested");
+    }
+  }
+
+  const result = await db.bloodRequest.create({
+    data: {
+      requesterId: requester.id,
+      ...payload,
+      status: "PENDING",
+    },
+  });
+
+  return result;
+};
 
 export const DonorRequestservice = {
-    DonorRequestIntoDB,
-    GetDonorRequestIntoDB,
-    UpdateDonorRequestIntoDB,
-}
+  createBloodRequestIntoDB,
+};

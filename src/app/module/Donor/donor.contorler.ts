@@ -2,9 +2,9 @@ import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
 import { DonorRequestservice } from "./donor.service";
 
+
 const createRequestADonor = catchAsync(async (req, res) => {
-    const user =req.user
-    const result = await DonorRequestservice.DonorRequestIntoDB(user,req.body);
+    const result = await DonorRequestservice.createBloodRequestIntoDB(req.user,req.body);
     sendResponse(res, {
         statusCode: 201,
         success: true,
@@ -15,7 +15,7 @@ const createRequestADonor = catchAsync(async (req, res) => {
 
 const GetRequestofDonor = catchAsync(async (req, res) => {
     const user = req.user
-    const result = await DonorRequestservice.GetDonorRequestIntoDB(user);
+    const result = await DonorRequestservice.createBloodRequestIntoDB(user);
     sendResponse(res, {
         statusCode: 200,
         success: true,
@@ -26,7 +26,7 @@ const GetRequestofDonor = catchAsync(async (req, res) => {
 const UpdateRequestofDonor = catchAsync(async (req, res) => {
     const UpdatData = req.body
     const id = req.params.requestId
-    const result = await DonorRequestservice.UpdateDonorRequestIntoDB(id, UpdatData);
+    const result = await DonorRequestservice.createBloodRequestIntoDB(id, UpdatData);
     sendResponse(res, {
         statusCode: 200,
         success: true,

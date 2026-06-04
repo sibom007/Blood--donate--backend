@@ -1,111 +1,158 @@
-import httpStatus from "http-status";
-import prisma from "../../../utils/prisma";
-import AppError from "../../Error/AppError";
-import { Tlogin } from "./auth.interface";
-import bcrypt from 'bcrypt';
-import { jwtHelpers } from "../../../helper/jwtHelpers";
+import bcrypt from "bcrypt";
 import config from "../../../config";
+import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
-import { UserStatus } from '@prisma/client';
+import { db } from "../../../utils/prisma";
+import AppError from "../../Error/AppError";
+import { UserStatus } from "@prisma/client";
+import { loginInput } from "./auth.interface";
+import { generateUserTokens, jwtHelpers } from "../../../helper/jwtHelpers";
 
-const LoginIntoDB = async (payload: Tlogin) => {
-
-    const userData = await prisma.user.findUniqueOrThrow({
-        where: {
-            email: payload.email
-        }
-    })
-
-    const currentpassword = await bcrypt.compare(payload.password, userData.password);
-    if (!currentpassword) {
-        throw new AppError(httpStatus.UNAUTHORIZED, "Password is not match",)
-    }
-
-    const token = jwtHelpers.generateToken({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role
+const LoginIntoDB = async (payload: loginInput) => {
+  const user = await db.user.findUnique({
+    where: {
+      email: payload.email,
     },
-        config.accesToken_secret as Secret,
-        "30d"
+  });
 
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
+
+  if (user.status === UserStatus.BLOCKED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Your account has been blocked.");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Your account has been suspended.",
     );
+  }
 
-    const refreshToken = jwtHelpers.generateToken({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role
+  const passwordMatched = await bcrypt.compare(payload.password, user.password);
+
+  if (!passwordMatched) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid credentials.");
+  }
+
+  const tokens = generateUserTokens({
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+  });
+
+  return {
+    ...tokens,
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      bloodGroup: user.bloodGroup,
+      profileImage: user.profileImage,
     },
-        config.refreshToken_secret as Secret,
-        "30d"
-
-    );
-    return { token, userData, refreshToken, }
+  };
 };
 
+const refreshToken = async (refreshTokenValue: string) => {
+  let decodedData;
 
-
-const refreshToken = async (token: string) => {
-    let decodedData;
-    try {
-        decodedData = jwtHelpers.verifyToken(token, 'abcdefghgijklmnop');
-    }
-    catch (err) {
-        throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized!")
-    }
-
-    const userData = await prisma.user.findUniqueOrThrow({
-        where: {
-            email: decodedData.email,
-            status: UserStatus.ACTIVE
-        }
-    });
-
-    const accessToken = jwtHelpers.generateToken({
-        email: userData.email,
-        role: userData.role
-    },
-        config.accesToken_secret as Secret,
-        "30d"
+  try {
+    decodedData = jwtHelpers.verifyToken(
+      refreshTokenValue,
+      config.refreshToken_secret as Secret,
     );
+  } catch {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid refresh token.");
+  }
 
-    return {
-        accessToken,
-    };
+  const user = await db.user.findUnique({
+    where: {
+      email: decodedData.email,
+    },
+  });
 
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
+
+  if (user.status !== UserStatus.ACTIVE) {
+    throw new AppError(httpStatus.FORBIDDEN, "Account is inactive.");
+  }
+
+  const accessToken = jwtHelpers.generateToken(
+    {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+    },
+    config.accesToken_secret as Secret,
+    config.accesToken_secret_exparein!,
+  );
+
+  return {
+    accessToken,
+  };
+};
+
+interface ChangePasswordPayload {
+  oldPassword: string;
+  newPassword: string;
 }
 
-const ChangePassword = async (payload: any, user: any) => {
-    const userData = await prisma.user.findUniqueOrThrow({
-        where: {
-            email: user.email,
-            status: UserStatus.ACTIVE
-        }
-    })
+const ChangePassword = async (
+  payload: ChangePasswordPayload,
+  authUser: {
+    email: string;
+  },
+) => {
+  const user = await db.user.findUnique({
+    where: {
+      email: authUser.email,
+    },
+  });
 
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
 
-    const iscurrectPassword = await bcrypt.compare(payload.oldPassword, userData?.password);
+  const oldPasswordMatched = await bcrypt.compare(
+    payload.oldPassword,
+    user.password,
+  );
 
-    if (!iscurrectPassword) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Password incorrect!")
-    }
+  if (!oldPasswordMatched) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Current password is incorrect.",
+    );
+  }
 
-    const hashedPassword: string = await bcrypt.hash(payload.newPassword, 12);
+  const samePassword = await bcrypt.compare(payload.newPassword, user.password);
 
-    await prisma.user.update({
-        where: {
-            email: userData.email
-        },
-        data: {
-            password: hashedPassword,
-        }
-    })
+  if (samePassword) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "New password cannot be the same as the old password.",
+    );
+  }
 
-    return null
+  const hashedPassword = await bcrypt.hash(payload.newPassword, 10);
 
-}
+  await db.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      password: hashedPassword,
+    },
+  });
+
+  return null
+};
 
 
 

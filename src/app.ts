@@ -2,22 +2,29 @@ import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import router from './routes';
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
-import httpStatus from 'http-status';
-import cookieParser from 'cookie-parser';
-const app = express()
+import httpStatus from "http-status";
 
-app.use(cors())
+import cookieParser from "cookie-parser";
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+const app = express();
+
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
+  }),
+);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-
 app.get("/", (req: Request, res: Response) => {
-    res.send({
-        Message: "Assmient-8 Is Runing"
-    })
-})
+  res.send({
+    Message: "Blood app is runing",
+  });
+});
 
 app.use("/api", router)
 app.use(globalErrorHandler);

@@ -9,6 +9,8 @@ router.post(
     '/login', AuthControllers.LoginUser
 );
 
+router.post("/logout", AuthControllers.logout);
+
 router.post(
     '/refresh-token',
     AuthControllers.refreshToken
