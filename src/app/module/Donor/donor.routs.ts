@@ -8,10 +8,16 @@ import { CreateBloodRequestSchema } from './donor.interface';
 const router = express.Router();
 
 router.post(
-  "/donation-request",
+  "/blood-request",
   auth(Role.USER, Role.OPERATOR, Role.SUPER_ADMIN),
   validateRequest(CreateBloodRequestSchema),
   Donorcontorler.createRequestADonor,
+);
+
+router.get(
+  "/available-donor",
+  auth(Role.USER, Role.OPERATOR, Role.SUPER_ADMIN),
+  Donorcontorler.availableDonor,
 );
 
 router.get(

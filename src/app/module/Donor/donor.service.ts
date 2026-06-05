@@ -75,6 +75,52 @@ const createBloodRequestIntoDB = async (
   return result;
 };
 
+export const availableDonorInToDB = async () => {
+  
+  const ninetyDaysAgo = new Date();
+
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const result = await db.user.findMany({
+    where: {
+      availability: true,
+      isDonor: true,
+      status: "ACTIVE",
+
+      OR: [
+        {
+          lastDonationDate: null,
+        },
+        {
+          lastDonationDate: {
+            lte: ninetyDaysAgo,
+          },
+        },
+      ],
+    },
+
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true,
+
+      bloodGroup: true,
+      isDonor: true,
+      city: true,
+      district: true,
+
+      profileImage: true,
+
+      availability: true,
+      lastDonationDate: true,
+    },
+  });
+
+  return result;
+};
+
 export const DonorRequestservice = {
   createBloodRequestIntoDB,
+  availableDonorInToDB,
 };

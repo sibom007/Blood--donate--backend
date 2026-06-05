@@ -13,6 +13,18 @@ const createRequestADonor = catchAsync(async (req, res) => {
     });
 });
 
+const availableDonor = catchAsync(async (req, res) => {
+  const result = await DonorRequestservice.availableDonorInToDB();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "",
+    data: result,
+  });
+});
+
+
+
 const GetRequestofDonor = catchAsync(async (req, res) => {
     const user = req.user
     const result = await DonorRequestservice.createBloodRequestIntoDB(user);
@@ -37,7 +49,8 @@ const UpdateRequestofDonor = catchAsync(async (req, res) => {
 
 
 export const Donorcontorler = {
-    createRequestADonor,
-    GetRequestofDonor,
-    UpdateRequestofDonor
-}
+  createRequestADonor,
+  GetRequestofDonor,
+  UpdateRequestofDonor,
+  availableDonor,
+};

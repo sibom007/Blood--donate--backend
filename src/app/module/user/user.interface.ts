@@ -16,25 +16,25 @@ export const createUserSchema = z.object({
 
   bloodGroup: BloodGroupEnum,
 
-  gender: GenderEnum.optional(),
+  gender: GenderEnum,
 
-  age: z.number().int().min(18).max(100).optional(),
+  age: z.number().int().min(18).max(100),
 
-  address: z.string().max(255).optional(),
+  address: z.string().max(255),
 
-  city: z.string().max(100).optional(),
+  city: z.string().max(100),
 
-  district: z.string().max(100).optional(),
+  district: z.string().max(100),
 
   profileImage: z.string().url().optional(),
 
   bio: z.string().max(500).optional(),
 
-  isDonor: z.boolean().default(true).optional(),
+  isDonor: z.boolean().default(true),
 
   availability: z.boolean().default(true).optional(),
 
-  weight: z.number().positive().optional(),
+  weight: z.number().positive(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

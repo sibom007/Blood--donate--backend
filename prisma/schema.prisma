@@ -8,41 +8,44 @@ datasource db {
 }
 
 model user {
-  id                String      @id @default(uuid())
+  id String @id @default(uuid())
 
   // Basic Info
-  fullName          String
-  email             String      @unique
-  phone             String      @unique
-  password          String
+  fullName String
+  email    String @unique
+  phone    String @unique
+  password String
 
   // Profile
-  gender            Gender?
-  age               Int?
-  bloodGroup        BloodGroup
-  address           String?
-  city              String?
-  district          String?
-  profileImage      String?
-  bio               String?
+  gender       Gender?
+  age          Int?
+  bloodGroup   BloodGroup
+  address      String?
+  city         String?
+  district     String?
+  profileImage String?
+  bio          String?
+  dateOfbirth  DateTime?
 
   // Donor Info
-  isDonor           Boolean     @default(true)
-  availability      Boolean     @default(true)
-  weight            Float?
-  lastDonationDate  DateTime?
+  isDonor          Boolean   @default(true)
+  availability     Boolean   @default(true)
+  weight           Float?
+  lastDonationDate DateTime?
 
   // Account
-  role              Role        @default(USER)
-  status            UserStatus  @default(ACTIVE)
-  emailVerified     Boolean     @default(false)
+  role          Role       @default(USER)
+  status        UserStatus @default(ACTIVE)
+  emailVerified Boolean    @default(false)
 
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  requestedBlood    bloodRequest[] @relation("Requester")
-  donatedBlood      bloodRequest[] @relation("Donor")
+  requestedBlood bloodRequest[] @relation("Requester")
+  donatedBlood   bloodRequest[] @relation("Donor")
+  inventories    inventory[]
+
   @@map("users")
 }
 
@@ -51,20 +54,20 @@ model bloodRequest {
 
   requesterId String
 
-  donorId String?
+  donorId     String?
   inventoryId String?
 
   patientName String
-  patientAge Int?
+  patientAge  Int?
 
-  bloodGroup BloodGroup
+  bloodGroup    BloodGroup
   unitsRequired Int
 
-  hospitalName String
+  hospitalName    String
   hospitalAddress String
 
   contactPerson String
-  contactPhone String
+  contactPhone  String
 
   reason String?
 
@@ -72,7 +75,7 @@ model bloodRequest {
 
   status RequestStatus @default(PENDING)
 
- requester user @relation("Requester", fields: [requesterId], references: [id])
+  requester user @relation("Requester", fields: [requesterId], references: [id])
 
   donor user? @relation("Donor", fields: [donorId], references: [id])
 
@@ -85,35 +88,37 @@ model bloodRequest {
 }
 
 model inventory {
-  id                  String            @id @default(uuid())
+  id String @id @default(uuid())
 
-  bloodGroup          BloodGroup
-  requests            bloodRequest[]
+  bloodGroup BloodGroup
+  requests   bloodRequest[]
 
   // Blood Unit Information
-  bagNumber           String            @unique
-  quantityML          Int
+  bagNumber  String @unique
+  quantityML Int
 
-  donorName           String?
-  donorId             String?
+  donorName String?
 
-  collectionDate      DateTime
-  expiryDate          DateTime
+  donorId String?
+
+  collectionDate DateTime
+  expiryDate     DateTime
 
   // Lab Testing
-  testStatus          TestStatus        @default(PENDING)
-  hivTest             TestResult        @default(PENDING)
-  hepatitisBTest      TestResult        @default(PENDING)
-  hepatitisCTest      TestResult        @default(PENDING)
-  malariaTest         TestResult        @default(PENDING)
-  syphilisTest        TestResult        @default(PENDING)
+  testStatus     TestStatus @default(PENDING)
+  hivTest        TestResult @default(PENDING)
+  hepatitisBTest TestResult @default(PENDING)
+  hepatitisCTest TestResult @default(PENDING)
+  malariaTest    TestResult @default(PENDING)
+  syphilisTest   TestResult @default(PENDING)
 
-  isAvailable         Boolean           @default(true)
+  isAvailable Boolean @default(true)
 
-  notes               String?
+  notes String?
 
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("inventories")
 }
 
