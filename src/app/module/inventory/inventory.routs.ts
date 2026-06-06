@@ -6,6 +6,7 @@ import validateRequest from "../../middlewares/validateRequest";
 import { InventoryContorler } from "./inventory.contorler";
 import { CreateInventorySchema } from "./inventory.interface";
 
+
 const router = express.Router();
 
 router.post(

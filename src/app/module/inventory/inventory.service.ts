@@ -67,6 +67,7 @@ const createBloodIntoDB = async (payload: CreateInventoryInput) => {
 const availableBloodInToDB = async (bloodGroup?: BloodGroup) => {
   const now = new Date();
 
+  console.log("hello")
   try {
     const result = await db.inventory.findMany({
       where: {
