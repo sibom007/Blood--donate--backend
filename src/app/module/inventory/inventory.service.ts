@@ -50,7 +50,7 @@ const createBloodIntoDB = async (payload: CreateInventoryInput) => {
       return tx.inventory.create({
         data: {
           ...payload,
-
+          userId: "asjdhjkasbkj",
           donorId: payload.donorId || null,
           donorName: payload.donorName || null,
 

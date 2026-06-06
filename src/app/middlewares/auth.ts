@@ -48,6 +48,7 @@ import { jwtHelpers } from "../../helper/jwtHelpers";
 import { NextFunction, Request, Response } from "express";
 import { TokenUser } from "../module/auth/auth.interface";
 
+
 type TokenPayload = TokenUser & JwtPayload;
 
 const auth = (...roles: string[]) => {

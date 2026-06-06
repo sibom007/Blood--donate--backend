@@ -1,9 +1,10 @@
 import AppError from "../../Error/AppError";
 import httpStatus from "http-status";
 import { db } from "../../../utils/prisma";
-import { TokenUser } from "../auth/auth.interface";
+
 import { CreateBloodRequestInput, GetOwnRequestsArgs, ICheckRequestParams, IUpdateStatusParams, PaginatedBloodRequests } from "./donor.interface";
 import { bloodRequest, Prisma, RequestStatus } from "@prisma/client";
+import { TokenUser } from "../auth/auth.interface";
 
 const createBloodRequestIntoDB = async (
   authUser: TokenUser,
