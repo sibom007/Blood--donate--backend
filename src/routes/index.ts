@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { AuthRoutes } from "../app/module/Auth/auth.routs";
-import { UserRoutes } from "../app/module/user/user.routs";
+import { AuthRoutes } from '../app/module/Auth/auth.routes';
+import { UserRoutes } from '../app/module/user/user.routes';
+import { DonorRoutes } from '../app/module/donor/donor.routes';
+import { InventoryRoutes } from '../app/module/inventory/inventory.routes';
 
-import { InventoryRoutes } from "../app/module/inventory/inventory.routs";
-import { DonorRoutes } from "../app/module/donor/donor.routs";
+
 
 const router = Router();
 
