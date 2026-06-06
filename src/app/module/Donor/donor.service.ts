@@ -2,8 +2,8 @@ import AppError from "../../Error/AppError";
 import httpStatus from "http-status";
 import { db } from "../../../utils/prisma";
 import { TokenUser } from "../auth/auth.interface";
-import { CreateBloodRequestInput, GetOwnRequestsArgs, PaginatedBloodRequests } from "./donor.interface";
-import { bloodRequest } from "@prisma/client";
+import { CreateBloodRequestInput, GetOwnRequestsArgs, ICheckRequestParams, IUpdateStatusParams, PaginatedBloodRequests } from "./donor.interface";
+import { bloodRequest, Prisma, RequestStatus } from "@prisma/client";
 
 const createBloodRequestIntoDB = async (
   authUser: TokenUser,
@@ -204,9 +204,110 @@ export const deleteOwnRequestInToDB = async ({
   }
 };
 
+export const CheckBloodRequestInToDB = async ({
+  status,
+  page,
+  limit,
+}: ICheckRequestParams) => {
+  //  Calculate how many items to skip based on current page
+  const skip = (page - 1) * limit;
+
+  //  Dynamically build the where filter condition
+  const whereConditions: Prisma.bloodRequestWhereInput = {};
+
+  // If a valid status is passed and it's not "ALL", filter by that specific enum status
+  if (
+    status &&
+    status !== "ALL" &&
+    Object.values(RequestStatus).includes(status as RequestStatus)
+  ) {
+    whereConditions.status = status as RequestStatus;
+  }
+
+  // Run both count and data queries simultaneously for optimal performance
+  const [totalCount, data] = await db.$transaction([
+    db.bloodRequest.count({
+      where: whereConditions,
+    }),
+    db.bloodRequest.findMany({
+      where: whereConditions,
+      skip: skip,
+      take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include:{
+        donor:{
+          select:{
+            fullName:true,
+            phone:true
+          }
+        },
+        requester:{
+          select:{
+            fullName:true,
+            phone:true
+          }
+        }
+      }
+    }),
+  ]);
+
+  // Determine if there are more records left to load on subsequent scrolls
+  const hasMore = skip + data.length < totalCount;
+
+  return {
+    meta: {
+      page,
+      limit,
+      totalCount,
+      hasMore,
+    },
+    data,
+  };
+};
+
+export const CheckBloodRequestStatusInToDB = async ({
+  id,
+  status,
+}: IUpdateStatusParams) => {
+  const upperStatus = status?.toUpperCase();
+  
+  if (
+    upperStatus !== RequestStatus.APPROVED &&
+    upperStatus !== RequestStatus.REJECTED
+  ) {
+    throw new AppError(
+      400,
+      "Invalid status operation. You can only mark requests as APPROVED or REJECTED here.",
+    );
+  }
+
+  // Check if the blood request actually exists first
+  const isRequestExist = await db.bloodRequest.findUnique({
+    where: { id },
+  });
+
+  if (!isRequestExist) {
+    throw new AppError(404, "Blood request record not found.");
+  }
+
+  // Update the status parameters in the database
+  const updatedResult = await db.bloodRequest.update({
+    where: { id },
+    data: {
+      status: upperStatus as RequestStatus,
+    },
+  });
+
+  return updatedResult;
+};
+
 export const DonorRequestservice = {
   createBloodRequestIntoDB,
   availableDonorInToDB,
   ownRequestsInToDB,
   deleteOwnRequestInToDB,
+  CheckBloodRequestInToDB,
+  CheckBloodRequestStatusInToDB,
 };

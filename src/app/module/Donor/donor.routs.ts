@@ -32,6 +32,18 @@ router.delete(
     Donorcontorler.deleteOwnRequest
 );
 
+router.get(
+  "/check-blood-request",
+  auth(Role.OPERATOR, Role.SUPER_ADMIN),
+  Donorcontorler.checkBloodRequest,
+);
+
+router.patch(
+  "/check-blood-request/:id",
+  auth(Role.OPERATOR, Role.SUPER_ADMIN),
+  Donorcontorler.checkBloodRequestStatus,
+);
+
 
 
 export const DonorRoutes = router;

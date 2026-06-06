@@ -93,3 +93,14 @@ export interface GetOwnRequestsArgs {
   page?: number; // The current page number (e.g., 1, 2, 3...)
   limit?: number; // How many items to fetch per request
 }
+
+export interface ICheckRequestParams {
+  status?: string;
+  page: number;
+  limit: number;
+}
+
+export interface IUpdateStatusParams {
+  id: string;
+  status: string;
+}

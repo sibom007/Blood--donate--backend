@@ -57,7 +57,7 @@ const ownRequests = catchAsync(async (req, res) => {
 
 const deleteOwnRequest = catchAsync(async (req, res) => {
   const { requestId } = req.params;
-  
+
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -75,9 +75,49 @@ const deleteOwnRequest = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+const checkBloodRequest = catchAsync(async (req, res) => {
+  const { status, page, limit } = req.query;
+
+  const parsedPage = parseInt(page as string) || 1;
+  const parsedLimit = parseInt(limit as string) || 6;
+
+  const result = await DonorRequestservice.CheckBloodRequestInToDB({
+    status: status as string,
+    page: parsedPage,
+    limit: parsedLimit,
+  });
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "",
+    data: result,
+  });
+});
+
+const checkBloodRequestStatus = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const result = await DonorRequestservice.CheckBloodRequestStatusInToDB({
+    id,
+    status: status as string,
+  });
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `Blood request successfully updated to ${status.toLowerCase()}.`,
+    data: result,
+  });
+});
+
 export const Donorcontorler = {
   createRequestADonor,
   availableDonor,
   ownRequests,
   deleteOwnRequest,
+  checkBloodRequest,
+  checkBloodRequestStatus,
 };
