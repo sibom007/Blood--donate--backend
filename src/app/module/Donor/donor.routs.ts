@@ -21,14 +21,15 @@ router.get(
 );
 
 router.get(
-    '/donation-request',
-    auth(Role.USER, Role.SUPER_ADMIN),
-    Donorcontorler.GetRequestofDonor
+    '/own-requests',
+    auth(Role.USER,Role.OPERATOR, Role.SUPER_ADMIN),
+    Donorcontorler.ownRequests
 );
-router.put(
-    '/donation-request/:requestId',
-    auth(Role.USER, Role.SUPER_ADMIN),
-    Donorcontorler.UpdateRequestofDonor
+
+router.delete(
+    '/own-requests/:requestId',
+    auth(Role.USER,Role.OPERATOR, Role.SUPER_ADMIN),
+    Donorcontorler.deleteOwnRequest
 );
 
 

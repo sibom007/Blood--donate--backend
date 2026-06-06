@@ -26,4 +26,4 @@ export type TokenUser = {
   fullName: string;
   email: string;
   role: Role;
-} | undefined;
+} ;

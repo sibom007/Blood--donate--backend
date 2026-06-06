@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { BloodGroupEnum } from "../user/user.interface";
+import { bloodRequest } from "@prisma/client";
+import { TokenUser } from "../auth/auth.interface";
 
 export const CreateBloodRequestSchema = z
   .object({
@@ -79,3 +81,15 @@ export const CreateBloodRequestSchema = z
   });
 
 export type CreateBloodRequestInput = z.infer<typeof CreateBloodRequestSchema>;
+
+
+export interface PaginatedBloodRequests {
+  data: bloodRequest[];
+  nextPage: number | null;
+}
+
+export interface GetOwnRequestsArgs {
+  authUser: TokenUser;
+  page?: number; // The current page number (e.g., 1, 2, 3...)
+  limit?: number; // How many items to fetch per request
+}
