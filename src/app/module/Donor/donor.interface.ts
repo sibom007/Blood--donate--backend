@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { BloodGroupEnum } from "../user/user.interface";
 import { bloodRequest } from "@prisma/client";
-import { TokenUser } from "../auth/auth.interface";
+import { TokenUser } from "../Auth/auth.interface";
 
 
 export const CreateBloodRequestSchema = z

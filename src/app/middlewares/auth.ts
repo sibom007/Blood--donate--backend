@@ -46,7 +46,9 @@ import AppError from "../Error/AppError";
 import { JwtPayload, Secret } from "jsonwebtoken";
 import { jwtHelpers } from "../../helper/jwtHelpers";
 import { NextFunction, Request, Response } from "express";
-import { TokenUser } from "../module/auth/auth.interface";
+import { TokenUser } from "../module/Auth/auth.interface";
+
+
 
 
 type TokenPayload = TokenUser & JwtPayload;
