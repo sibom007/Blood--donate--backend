@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { AuthRoutes } from "../app/module/Auth/auth.routs";
 import { UserRoutes } from "../app/module/user/user.routs";
-import { DonorRoutes } from "../app/module/donor/donor.routs";
+
 import { InventoryRoutes } from "../app/module/inventory/inventory.routs";
+import { DonorRoutes } from "../app/module/donor/donor.routs";
 
 const router = Router();
 
