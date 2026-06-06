@@ -4,7 +4,7 @@ import { db } from "../../../utils/prisma";
 
 import { CreateBloodRequestInput, GetOwnRequestsArgs, ICheckRequestParams, IUpdateStatusParams, PaginatedBloodRequests } from "./donor.interface";
 import { bloodRequest, Prisma, RequestStatus } from "@prisma/client";
-import { TokenUser } from "../Auth/auth.interface";
+import { TokenUser } from "../auth/auth.interface";
 
 const createBloodRequestIntoDB = async (
   authUser: TokenUser,
