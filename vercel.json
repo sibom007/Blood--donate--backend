@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "dist/app.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["dist/**"]
+      }
     }
   ],
   "routes": [
@@ -11,5 +14,6 @@
       "src": "/(.*)",
       "dest": "dist/app.js"
     }
-  ]
+  ],
+  "buildCommand": "prisma generate && tsc -b"
 }
