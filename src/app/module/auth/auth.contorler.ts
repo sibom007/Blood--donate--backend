@@ -13,7 +13,7 @@ const LoginUser = catchAsync(async (req, res) => {
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: true,
-    sameSite: "strict",
+    sameSite: "none",
     maxAge: ms(Tokenduration),
   });
 
