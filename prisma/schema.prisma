@@ -25,7 +25,6 @@ model user {
   district     String?
   profileImage String?
   bio          String?
-  dateOfbirth  DateTime?
 
   // Donor Info
   isDonor          Boolean   @default(true)

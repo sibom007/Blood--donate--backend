@@ -9,51 +9,59 @@ import { loginInput } from "./auth.interface";
 import { generateUserTokens, jwtHelpers } from "../../../helper/jwtHelpers";
 
 const LoginIntoDB = async (payload: loginInput) => {
-  const user = await db.user.findUnique({
-    where: {
-      email: payload.email,
-    },
-  });
 
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
-  }
+    const user = await db.user.findUnique({
+      where: {
+        email: payload.email,
+      },
+    });
 
-  if (user.status === UserStatus.BLOCKED) {
-    throw new AppError(httpStatus.FORBIDDEN, "Your account has been blocked.");
-  }
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+    }
 
-  if (user.status === UserStatus.SUSPENDED) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "Your account has been suspended.",
+    if (user.status === UserStatus.BLOCKED) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Your account has been blocked.",
+      );
+    }
+
+    if (user.status === UserStatus.SUSPENDED) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Your account has been suspended.",
+      );
+    }
+
+    const passwordMatched = await bcrypt.compare(
+      payload.password,
+      user.password,
     );
-  }
 
-  const passwordMatched = await bcrypt.compare(payload.password, user.password);
+    if (!passwordMatched) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Invalid credentials.");
+    }
 
-  if (!passwordMatched) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid credentials.");
-  }
-
-  const tokens = generateUserTokens({
-    id: user.id,
-    fullName: user.fullName,
-    email: user.email,
-    role: user.role,
-  });
-
-  return {
-    ...tokens,
-    user: {
+    const tokens = generateUserTokens({
       id: user.id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
-      bloodGroup: user.bloodGroup,
-      profileImage: user.profileImage,
-    },
-  };
+    });
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        bloodGroup: user.bloodGroup,
+        profileImage: user.profileImage,
+      },
+    };
+ 
 };
 
 const refreshToken = async (refreshTokenValue: string) => {
