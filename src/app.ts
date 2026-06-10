@@ -14,6 +14,7 @@ app.use(
       "http://localhost:3000",
       "http://localhost:5173",
       "https://blood-donate-react-frontend.vercel.app",
+      "https://blood-donate-frontent.web.app",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
