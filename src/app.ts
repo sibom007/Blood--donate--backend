@@ -3,19 +3,14 @@ import cors from 'cors';
 import router from './routes';
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import httpStatus from "http-status";
-
 import cookieParser from "cookie-parser";
+import config from "./config";
 
 const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://blood-donate-react-frontend.vercel.app",
-      "https://blood-donate-frontent.web.app",
-    ],
+    origin: ["http://localhost:5173", config.cors_url],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   }),
